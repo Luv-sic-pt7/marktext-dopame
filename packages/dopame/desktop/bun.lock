@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "marktext-workspace",
+      "devDependencies": {
+        "@dopame/acde-api": "https://calbin-1318886512.cos.ap-beijing.myqcloud.com/pkgs/acdert/0.0.9/acde-api-0.0.9.tar.gz",
+      },
+    },
+  },
+  "packages": {
+    "@dopame/acde-api": ["@dopame/acde-api@https://calbin-1318886512.cos.ap-beijing.myqcloud.com/pkgs/acdert/0.0.9/acde-api-0.0.9.tar.gz", { "peerDependencies": { "vite": ">=5" }, "optionalPeers": ["vite"] }, "sha512-UKZSdcAcXSkdN7sUF78WtCCGGDYzlaKVjyF6LgBUKXqhj6tA74ioz2jR/7fR2RvVumvWj3X1vROckAJEhyrJZw=="],
+  }
+}

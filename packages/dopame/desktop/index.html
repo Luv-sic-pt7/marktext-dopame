@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>MarkText 协作中心</title>
+    <link rel="stylesheet" href="./src/desktop.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M3 19V5l9 8 9-8v14M3 5l9 14L21 5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+        </svg>
+        <h1>MarkText <span>协作中心</span></h1>
+      </div>
+      <div>
+        <span id="service-status" role="status" aria-label="服务状态">正在连接服务…</span
+        ><button id="open-editor" class="primary">打开编辑器</button>
+      </div>
+    </header>
+    <main>
+      <section class="connection">
+        <div>
+          <h2 id="connection-title">连接本机协作管理</h2>
+          <p>配对调用方、设置文档权限，并核对等待处理的修改。</p>
+          <p class="path">管理员凭证位置：<code id="credential-path">正在读取…</code></p>
+        </div>
+        <button id="connect">选择管理员凭证</button>
+      </section>
+      <p id="message" role="status" aria-label="操作反馈" hidden></p>
+      <div id="management" hidden>
+        <div class="setup-grid">
+          <section class="panel">
+            <h2>配对调用方</h2>
+            <form id="pair-form">
+              <label
+                >调用方 ID<input
+                  id="client-id"
+                  maxlength="64"
+                  pattern="[A-Za-z0-9][A-Za-z0-9._:-]*"
+                  required
+                  placeholder="例如 researcher" /></label
+              ><label
+                >显示名称<input
+                  id="client-label"
+                  maxlength="100"
+                  required
+                  placeholder="例如 研究 Agent" /></label
+              ><label class="check"
+                ><input id="direct-apply" type="checkbox" />允许在授权范围内直接应用修改</label
+              >
+              <p class="hint">未勾选时，修改和应用建议的任务等待用户批准。只读操作不受影响。</p>
+              <button class="primary" type="submit">创建配对凭证</button>
+            </form>
+            <div id="paired-result" class="receipt" hidden>
+              <strong>已创建调用方凭证</strong>
+              <p>让调用方选择以下凭证文件。凭证内容不会显示在此页面。</p>
+              <code id="paired-path"></code>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>授权范围</h2>
+            <form id="grant-form">
+              <label
+                >调用方<select id="grant-client" required>
+                  <option value="">先选择调用方</option>
+                </select></label
+              ><label
+                >资源类型<select id="grant-kind">
+                  <option value="document">文档</option>
+                  <option value="workspace">创建新文档</option>
+                </select></label
+              ><label id="document-label"
+                >文档<select id="grant-resource">
+                  <option value="">选择一份文档</option>
+                </select></label
+              ><label id="actions-label"
+                >允许动作<select id="grant-actions">
+                  <option value="read">只读</option>
+                  <option value="review">读取与提交建议</option>
+                  <option value="edit">读取、修改、应用建议、保存和导出</option>
+                  <option value="share">读写、建议、保存、导出和转交</option>
+                </select></label
+              ><label
+                >有效期（小时，留空长期）<input
+                  id="grant-hours"
+                  type="number"
+                  min="1"
+                  max="720"
+                  value="24" /></label
+              ><label class="check"><input id="can-share" type="checkbox" />允许向下游转授权</label>
+              <p class="hint">到期或撤销后，受此授权派生的访问也停止生效。</p>
+              <button class="primary" type="submit">授予所选权限</button>
+            </form>
+          </section>
+        </div>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>已配对调用方</h2>
+            <button id="refresh">刷新状态</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>调用方</th>
+                  <th>配对 ID</th>
+                  <th>修改策略</th>
+                  <th>状态</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="clients"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>当前授权</h2>
+            <label class="check compact"
+              ><input id="show-derived" type="checkbox" />显示任务和产物等衍生授权</label
+            >
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>调用方</th>
+                  <th>资源</th>
+                  <th>允许动作</th>
+                  <th>有效期</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="grants"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>协作任务</h2>
+            <span class="hint">接受请求不等于执行完成</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>能力与来源</th>
+                  <th>任务 ID</th>
+                  <th>状态</th>
+                  <th>更新时间</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tasks"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="task-detail" class="panel" hidden>
+          <div class="section-heading">
+            <h2>任务详情</h2>
+            <button id="hide-detail">收起</button>
+          </div>
+          <pre id="task-json"></pre>
+        </section>
+        <section class="panel">
+          <h2>编辑器唤醒记录</h2>
+          <p class="hint">
+            已有结果从服务读取；需要编辑器时复用或请求启动
+            MarkText。以下显示最近记录中的启动请求数。
+          </p>
+          <output id="wake-count" aria-label="启动请求次数">尚未读取</output>
+        </section>
+      </div>
+    </main>
+    <nav id="dock" aria-label="应用"></nav>
+    <script type="module" src="./src/desktop.js"></script>
+  </body>
+</html>

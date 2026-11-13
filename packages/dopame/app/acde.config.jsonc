@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/@dopame/acde-api/config.schema.json",
+  "type": "app",
+  "id": "marktext-dopame",
+  "label": "MarkText · Dopame",
+  "icon": "editor",
+  "framework": "vite",
+  "size": [1280, 820],
+  "heapMb": 384,
+  "multiple": false,
+  "capabilities": { "fs": true, "openFiles": true },
+  "services": ["marktext-agent"],
+  "requests": ["agent-wake"],
+  "mimeTypes": ["text/markdown", "text/plain"]
+}

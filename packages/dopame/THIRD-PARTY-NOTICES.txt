@@ -1,0 +1,2505 @@
+MarkText for Dopame OS · third-party dependency inventory
+
+This inventory includes build/test dependencies. Runtime bundles include only imported modules and assets.
+Original MarkText and Muya licenses remain applicable. acde/acdert are provided separately by the platform.
+Bundled Open Sans and DejaVu Sans Mono font notices are in third-party-licenses/assets-*.txt.
+
+@antfu/eslint-config 9.5.1 — "MIT"
+third-party-licenses/antfu__eslint-config@9.5.1-LICENSE
+
+@antfu/install-pkg 2.1.0 — "MIT"
+third-party-licenses/antfu__install-pkg@2.1.0-LICENSE
+
+@asamuzakjp/css-color 7.2.0 — "MIT"
+third-party-licenses/asamuzakjp__css-color@7.2.0-LICENSE
+
+@asamuzakjp/dom-selector 10.0.5 — "MIT"
+third-party-licenses/asamuzakjp__dom-selector@10.0.5-LICENSE
+
+@babel/code-frame 7.29.7 — "MIT"
+third-party-licenses/babel__code-frame@7.29.7-LICENSE
+
+@babel/helper-string-parser 7.29.14 — "MIT"
+third-party-licenses/babel__helper-string-parser@7.29.14-LICENSE
+
+@babel/helper-validator-identifier 7.29.7 — "MIT"
+third-party-licenses/babel__helper-validator-identifier@7.29.7-LICENSE
+
+@babel/parser 7.29.14 — "MIT"
+third-party-licenses/babel__parser@7.29.14-LICENSE
+
+@babel/types 7.29.14 — "MIT"
+third-party-licenses/babel__types@7.29.14-LICENSE
+
+@braintree/sanitize-url 7.1.2 — "MIT"
+third-party-licenses/braintree__sanitize-url@7.1.2-LICENSE
+
+@bramus/specificity 2.4.3 — "MIT"
+third-party-licenses/bramus__specificity@2.4.3-LICENSE
+
+@cacheable/memory 2.2.0 — "MIT"
+third-party-licenses/cacheable__memory@2.2.0-LICENSE
+
+@cacheable/utils 2.5.0 — "MIT"
+third-party-licenses/cacheable__utils@2.5.0-LICENSE
+
+@chevrotain/cst-dts-gen 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain__cst-dts-gen@13.2.0-LICENSE.txt
+
+@chevrotain/gast 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain__gast@13.2.0-LICENSE.txt
+
+@chevrotain/regexp-to-ast 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain__regexp-to-ast@13.2.0-LICENSE.txt
+
+@chevrotain/types 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain__types@13.2.0-LICENSE.txt
+
+@chevrotain/utils 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain__utils@13.2.0-LICENSE.txt
+
+@clack/core 1.6.0 — "MIT"
+third-party-licenses/clack__core@1.6.0-LICENSE
+
+@clack/prompts 1.9.0 — "MIT"
+third-party-licenses/clack__prompts@1.9.0-LICENSE
+
+@csstools/color-helpers 6.1.2 — "MIT-0"
+third-party-licenses/csstools__color-helpers@6.1.2-LICENSE.md
+
+@csstools/css-calc 3.4.3 — "MIT"
+third-party-licenses/csstools__css-calc@3.4.3-LICENSE.md
+
+@csstools/css-color-parser 4.2.7 — "MIT"
+third-party-licenses/csstools__css-color-parser@4.2.7-LICENSE.md
+
+@csstools/css-parser-algorithms 4.0.2 — "MIT"
+third-party-licenses/csstools__css-parser-algorithms@4.0.2-LICENSE.md
+
+@csstools/css-syntax-patches-for-csstree 1.1.16 — "MIT-0"
+third-party-licenses/csstools__css-syntax-patches-for-csstree@1.1.16-LICENSE.md
+
+@csstools/css-tokenizer 4.0.2 — "MIT"
+third-party-licenses/csstools__css-tokenizer@4.0.2-LICENSE.md
+
+@csstools/media-query-list-parser 5.0.2 — "MIT"
+third-party-licenses/csstools__media-query-list-parser@5.0.2-LICENSE.md
+
+@csstools/selector-resolve-nested 4.0.2 — "MIT-0"
+third-party-licenses/csstools__selector-resolve-nested@4.0.2-LICENSE.md
+
+@csstools/selector-specificity 6.0.1 — "MIT-0"
+third-party-licenses/csstools__selector-specificity@6.0.1-LICENSE.md
+
+@dependents/detective-less 5.0.3 — "MIT"
+third-party-licenses/dependents__detective-less@5.0.3-LICENSE
+
+@discoveryjs/json-ext 1.1.0 — "MIT"
+third-party-licenses/discoveryjs__json-ext@1.1.0-LICENSE
+
+@dopame/acde-api 0.0.9 — "UNLICENSED"
+third-party-licenses/dopame__acde-api@0.0.9-LICENSE
+
+@dprint/formatter 0.5.1 — "MIT"
+third-party-licenses/dprint__formatter@0.5.1-LICENSE
+
+@dprint/markdown 0.21.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@dprint/toml 0.7.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@e18e/eslint-plugin 0.8.1 — "MIT"
+third-party-licenses/e18e__eslint-plugin@0.8.1-LICENSE
+
+@es-joy/jsdoccomment 0.92.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@es-joy/jsdoccomment 0.98.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@es-joy/resolve.exports 1.2.0 — "MIT"
+third-party-licenses/es-joy__resolve.exports@1.2.0-license
+
+@eslint-community/eslint-plugin-eslint-comments 4.8.1 — "MIT"
+third-party-licenses/eslint-community__eslint-plugin-eslint-comments@4.8.1-LICENSE
+
+@eslint-community/eslint-utils 4.10.1 — "MIT"
+third-party-licenses/eslint-community__eslint-utils@4.10.1-LICENSE
+
+@eslint-community/regexpp 4.12.3 — "MIT"
+third-party-licenses/eslint-community__regexpp@4.12.3-LICENSE
+
+@eslint/compat 2.1.1 — "Apache-2.0"
+third-party-licenses/eslint__compat@2.1.1-LICENSE
+
+@eslint/config-array 0.23.5 — "Apache-2.0"
+third-party-licenses/eslint__config-array@0.23.5-LICENSE
+
+@eslint/config-helpers 0.5.5 — "Apache-2.0"
+third-party-licenses/eslint__config-helpers@0.5.5-LICENSE
+
+@eslint/config-helpers 0.7.0 — "Apache-2.0"
+third-party-licenses/eslint__config-helpers@0.7.0-LICENSE
+
+@eslint/core 1.2.1 — "Apache-2.0"
+third-party-licenses/eslint__core@1.2.1-LICENSE
+
+@eslint/css-tree 4.1.2 — "MIT"
+third-party-licenses/eslint__css-tree@4.1.2-LICENSE
+
+@eslint/markdown 8.0.3 — "MIT"
+third-party-licenses/eslint__markdown@8.0.3-LICENSE
+
+@eslint/object-schema 3.0.5 — "Apache-2.0"
+third-party-licenses/eslint__object-schema@3.0.5-LICENSE
+
+@eslint/plugin-kit 0.7.3 — "Apache-2.0"
+third-party-licenses/eslint__plugin-kit@0.7.3-LICENSE
+
+@exodus/bytes 1.16.0 — "MIT"
+third-party-licenses/exodus__bytes@1.16.0-LICENSE
+
+@floating-ui/core 1.8.0 — "MIT"
+third-party-licenses/floating-ui__core@1.8.0-LICENSE
+
+@floating-ui/dom 1.8.0 — "MIT"
+third-party-licenses/floating-ui__dom@1.8.0-LICENSE
+
+@floating-ui/utils 0.2.12 — "MIT"
+third-party-licenses/floating-ui__utils@0.2.12-LICENSE
+
+@humanfs/core 0.19.2 — "Apache-2.0"
+third-party-licenses/humanfs__core@0.19.2-LICENSE
+
+@humanfs/node 0.16.8 — "Apache-2.0"
+third-party-licenses/humanfs__node@0.16.8-LICENSE
+
+@humanfs/types 0.15.0 — "Apache-2.0"
+See package metadata; no separate top-level license file was installed.
+
+@humanwhocodes/module-importer 1.0.1 — "Apache-2.0"
+third-party-licenses/humanwhocodes__module-importer@1.0.1-LICENSE
+
+@humanwhocodes/retry 0.4.3 — "Apache-2.0"
+third-party-licenses/humanwhocodes__retry@0.4.3-LICENSE
+
+@iconify/types 2.0.0 — "MIT"
+third-party-licenses/iconify__types@2.0.0-license.txt
+
+@iconify/utils 3.1.7 — "MIT"
+third-party-licenses/iconify__utils@3.1.7-license.txt
+
+@isaacs/nonrecursive-glob-match 1.1.0 — "BlueOak-1.0.0"
+third-party-licenses/isaacs__nonrecursive-glob-match@1.1.0-LICENSE.md
+
+@istanbuljs/schema 0.1.6 — "MIT"
+third-party-licenses/istanbuljs__schema@0.1.6-LICENSE
+
+@jridgewell/gen-mapping 0.3.13 — "MIT"
+third-party-licenses/jridgewell__gen-mapping@0.3.13-LICENSE
+
+@jridgewell/remapping 2.3.5 — "MIT"
+third-party-licenses/jridgewell__remapping@2.3.5-LICENSE
+
+@jridgewell/resolve-uri 3.1.3 — "MIT"
+third-party-licenses/jridgewell__resolve-uri@3.1.3-LICENSE
+
+@jridgewell/sourcemap-codec 1.6.0 — "MIT"
+third-party-licenses/jridgewell__sourcemap-codec@1.6.0-LICENSE
+
+@jridgewell/trace-mapping 0.3.31 — "MIT"
+third-party-licenses/jridgewell__trace-mapping@0.3.31-LICENSE
+
+@keyv/bigmap 1.3.1 — "MIT"
+third-party-licenses/keyv__bigmap@1.3.1-LICENSE
+
+@keyv/serialize 1.1.1 — "MIT"
+third-party-licenses/keyv__serialize@1.1.1-LICENSE
+
+@laynezh/vite-plugin-lib-assets 2.1.3 — "MIT"
+third-party-licenses/laynezh__vite-plugin-lib-assets@2.1.3-LICENSE
+
+@marktext/file-icons 1.1.0 — "MIT"
+third-party-licenses/marktext__file-icons@1.1.0-LICENSE
+
+@mermaid-js/parser 2.0.1 — "MIT"
+third-party-licenses/mermaid-js__parser@2.0.1-LICENSE
+
+@mixmark-io/domino 2.2.0 — "BSD-2-Clause"
+third-party-licenses/mixmark-io__domino@2.2.0-LICENSE
+
+@muyajs/core 0.2.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@my-scope/package-a 0.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@my-scope/package-b 0.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@nodelib/fs.scandir 2.1.5 — "MIT"
+third-party-licenses/nodelib__fs.scandir@2.1.5-LICENSE
+
+@nodelib/fs.stat 2.0.5 — "MIT"
+third-party-licenses/nodelib__fs.stat@2.0.5-LICENSE
+
+@nodelib/fs.walk 1.2.8 — "MIT"
+third-party-licenses/nodelib__fs.walk@1.2.8-LICENSE
+
+@ota-meshi/ast-token-store 0.3.0 — "MIT"
+third-party-licenses/ota-meshi__ast-token-store@0.3.0-LICENSE
+
+@oxc-project/types 0.156.0 — "MIT"
+third-party-licenses/oxc-project__types@0.156.0-LICENSE
+
+@oxfmt/binding-darwin-arm64 0.35.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@pkgr/core 0.3.6 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@rolldown/binding-darwin-arm64 1.2.19 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+@rolldown/pluginutils 1.1.1 — "MIT"
+third-party-licenses/rolldown__pluginutils@1.1.1-LICENSE
+
+@rollup/pluginutils 5.5.1 — "MIT"
+third-party-licenses/rollup__pluginutils@5.5.1-LICENSE
+
+@sindresorhus/base62 1.0.0 — "MIT"
+third-party-licenses/sindresorhus__base62@1.0.0-license
+
+@sindresorhus/merge-streams 4.0.0 — "MIT"
+third-party-licenses/sindresorhus__merge-streams@4.0.0-license
+
+@stylistic/eslint-plugin 5.10.0 — "MIT"
+third-party-licenses/stylistic__eslint-plugin@5.10.0-LICENSE
+
+@ts-graphviz/adapter 2.0.6 — "MIT"
+third-party-licenses/ts-graphviz__adapter@2.0.6-LICENSE
+
+@ts-graphviz/ast 2.0.7 — "MIT"
+third-party-licenses/ts-graphviz__ast@2.0.7-LICENSE
+
+@ts-graphviz/common 2.1.5 — "MIT"
+third-party-licenses/ts-graphviz__common@2.1.5-LICENSE
+
+@ts-graphviz/core 2.0.7 — "MIT"
+third-party-licenses/ts-graphviz__core@2.0.7-LICENSE
+
+@types/bun 1.4.4 — "MIT"
+third-party-licenses/types__bun@1.4.4-LICENSE
+
+@types/chai 5.2.3 — "MIT"
+third-party-licenses/types__chai@5.2.3-LICENSE
+
+@types/codemirror 5.60.18 — "MIT"
+third-party-licenses/types__codemirror@5.60.18-LICENSE
+
+@types/d3 7.4.3 — "MIT"
+third-party-licenses/types__d3@7.4.3-LICENSE
+
+@types/d3-array 3.2.2 — "MIT"
+third-party-licenses/types__d3-array@3.2.2-LICENSE
+
+@types/d3-axis 3.0.6 — "MIT"
+third-party-licenses/types__d3-axis@3.0.6-LICENSE
+
+@types/d3-brush 3.0.6 — "MIT"
+third-party-licenses/types__d3-brush@3.0.6-LICENSE
+
+@types/d3-chord 3.0.6 — "MIT"
+third-party-licenses/types__d3-chord@3.0.6-LICENSE
+
+@types/d3-color 3.1.3 — "MIT"
+third-party-licenses/types__d3-color@3.1.3-LICENSE
+
+@types/d3-contour 3.0.6 — "MIT"
+third-party-licenses/types__d3-contour@3.0.6-LICENSE
+
+@types/d3-delaunay 6.0.4 — "MIT"
+third-party-licenses/types__d3-delaunay@6.0.4-LICENSE
+
+@types/d3-dispatch 3.0.7 — "MIT"
+third-party-licenses/types__d3-dispatch@3.0.7-LICENSE
+
+@types/d3-drag 3.0.7 — "MIT"
+third-party-licenses/types__d3-drag@3.0.7-LICENSE
+
+@types/d3-dsv 3.0.7 — "MIT"
+third-party-licenses/types__d3-dsv@3.0.7-LICENSE
+
+@types/d3-ease 3.0.2 — "MIT"
+third-party-licenses/types__d3-ease@3.0.2-LICENSE
+
+@types/d3-fetch 3.0.7 — "MIT"
+third-party-licenses/types__d3-fetch@3.0.7-LICENSE
+
+@types/d3-force 3.0.10 — "MIT"
+third-party-licenses/types__d3-force@3.0.10-LICENSE
+
+@types/d3-format 3.0.4 — "MIT"
+third-party-licenses/types__d3-format@3.0.4-LICENSE
+
+@types/d3-geo 3.1.1 — "MIT"
+third-party-licenses/types__d3-geo@3.1.1-LICENSE
+
+@types/d3-hierarchy 3.1.7 — "MIT"
+third-party-licenses/types__d3-hierarchy@3.1.7-LICENSE
+
+@types/d3-interpolate 3.0.4 — "MIT"
+third-party-licenses/types__d3-interpolate@3.0.4-LICENSE
+
+@types/d3-path 3.1.1 — "MIT"
+third-party-licenses/types__d3-path@3.1.1-LICENSE
+
+@types/d3-polygon 3.0.2 — "MIT"
+third-party-licenses/types__d3-polygon@3.0.2-LICENSE
+
+@types/d3-quadtree 3.0.6 — "MIT"
+third-party-licenses/types__d3-quadtree@3.0.6-LICENSE
+
+@types/d3-random 3.0.4 — "MIT"
+third-party-licenses/types__d3-random@3.0.4-LICENSE
+
+@types/d3-scale 4.0.9 — "MIT"
+third-party-licenses/types__d3-scale@4.0.9-LICENSE
+
+@types/d3-scale-chromatic 3.1.0 — "MIT"
+third-party-licenses/types__d3-scale-chromatic@3.1.0-LICENSE
+
+@types/d3-selection 3.0.12 — "MIT"
+third-party-licenses/types__d3-selection@3.0.12-LICENSE
+
+@types/d3-shape 3.2.0 — "MIT"
+third-party-licenses/types__d3-shape@3.2.0-LICENSE
+
+@types/d3-time 3.0.4 — "MIT"
+third-party-licenses/types__d3-time@3.0.4-LICENSE
+
+@types/d3-time-format 4.0.3 — "MIT"
+third-party-licenses/types__d3-time-format@4.0.3-LICENSE
+
+@types/d3-timer 3.0.2 — "MIT"
+third-party-licenses/types__d3-timer@3.0.2-LICENSE
+
+@types/d3-transition 3.0.9 — "MIT"
+third-party-licenses/types__d3-transition@3.0.9-LICENSE
+
+@types/d3-zoom 3.0.9 — "MIT"
+third-party-licenses/types__d3-zoom@3.0.9-LICENSE
+
+@types/debug 4.1.13 — "MIT"
+third-party-licenses/types__debug@4.1.13-LICENSE
+
+@types/deep-eql 4.0.2 — "MIT"
+third-party-licenses/types__deep-eql@4.0.2-LICENSE
+
+@types/esrecurse 4.3.1 — "MIT"
+third-party-licenses/types__esrecurse@4.3.1-LICENSE
+
+@types/estree 1.0.10 — "MIT"
+third-party-licenses/types__estree@1.0.10-LICENSE
+
+@types/geojson 7946.0.16 — "MIT"
+third-party-licenses/types__geojson@7946.0.16-LICENSE
+
+@types/hast 3.0.5 — "MIT"
+third-party-licenses/types__hast@3.0.5-LICENSE
+
+@types/json-schema 7.0.15 — "MIT"
+third-party-licenses/types__json-schema@7.0.15-LICENSE
+
+@types/katex 0.16.8 — "MIT"
+third-party-licenses/types__katex@0.16.8-LICENSE
+
+@types/mdast 4.0.4 — "MIT"
+third-party-licenses/types__mdast@4.0.4-LICENSE
+
+@types/ms 2.1.0 — "MIT"
+third-party-licenses/types__ms@2.1.0-LICENSE
+
+@types/node 26.6.6 — "MIT"
+third-party-licenses/types__node@26.6.6-LICENSE
+
+@types/plantuml-encoder 1.4.2 — "MIT"
+third-party-licenses/types__plantuml-encoder@1.4.2-LICENSE
+
+@types/prismjs 1.26.6 — "MIT"
+third-party-licenses/types__prismjs@1.26.6-LICENSE
+
+@types/tern 0.23.9 — "MIT"
+third-party-licenses/types__tern@0.23.9-LICENSE
+
+@types/trusted-types 2.0.7 — "MIT"
+third-party-licenses/types__trusted-types@2.0.7-LICENSE
+
+@types/turndown 5.0.6 — "MIT"
+third-party-licenses/types__turndown@5.0.6-LICENSE
+
+@types/underscore 1.13.0 — "MIT"
+third-party-licenses/types__underscore@1.13.0-LICENSE
+
+@types/unist 3.0.3 — "MIT"
+third-party-licenses/types__unist@3.0.3-LICENSE
+
+@types/webfontloader 1.6.38 — "MIT"
+third-party-licenses/types__webfontloader@1.6.38-LICENSE
+
+@types/whatwg-mimetype 3.0.2 — "MIT"
+third-party-licenses/types__whatwg-mimetype@3.0.2-LICENSE
+
+@types/ws 8.18.2 — "MIT"
+third-party-licenses/types__ws@8.18.2-LICENSE
+
+@typescript-eslint/eslint-plugin 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__eslint-plugin@8.72.2-LICENSE
+
+@typescript-eslint/parser 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__parser@8.72.2-LICENSE
+
+@typescript-eslint/project-service 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__project-service@8.72.2-LICENSE
+
+@typescript-eslint/scope-manager 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__scope-manager@8.72.2-LICENSE
+
+@typescript-eslint/tsconfig-utils 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__tsconfig-utils@8.72.2-LICENSE
+
+@typescript-eslint/type-utils 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__type-utils@8.72.2-LICENSE
+
+@typescript-eslint/types 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__types@8.72.2-LICENSE
+
+@typescript-eslint/typescript-estree 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__typescript-estree@8.72.2-LICENSE
+
+@typescript-eslint/utils 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__utils@8.72.2-LICENSE
+
+@typescript-eslint/visitor-keys 8.72.2 — "MIT"
+third-party-licenses/typescript-eslint__visitor-keys@8.72.2-LICENSE
+
+@upsetjs/venn.js 2.0.0 — "MIT"
+third-party-licenses/upsetjs__venn.js@2.0.0-LICENSE
+
+@vitejs/plugin-vue 6.0.9 — "MIT"
+third-party-licenses/vitejs__plugin-vue@6.0.9-LICENSE
+
+@vitest/coverage-istanbul 5.1.0 — "MIT"
+third-party-licenses/vitest__coverage-istanbul@5.1.0-LICENSE
+
+@vitest/eslint-plugin 1.6.28 — "MIT"
+third-party-licenses/vitest__eslint-plugin@1.6.28-LICENSE
+
+@vitest/istanbul-lib-coverage 2.1.0 — "MIT"
+third-party-licenses/vitest__istanbul-lib-coverage@2.1.0-LICENSE
+
+@vitest/istanbul-lib-instrument 2.1.0 — "MIT"
+third-party-licenses/vitest__istanbul-lib-instrument@2.1.0-LICENSE
+
+@vitest/istanbul-lib-report 2.1.0 — "MIT"
+third-party-licenses/vitest__istanbul-lib-report@2.1.0-LICENSE
+
+@vitest/istanbul-lib-source-maps 2.1.0 — "MIT"
+third-party-licenses/vitest__istanbul-lib-source-maps@2.1.0-LICENSE
+
+@vitest/mocker 5.1.0 — "MIT"
+third-party-licenses/vitest__mocker@5.1.0-LICENSE
+
+@vitest/spy 5.1.0 — "MIT"
+third-party-licenses/vitest__spy@5.1.0-LICENSE
+
+@volar/language-core 2.4.28 — "MIT"
+third-party-licenses/volar__language-core@2.4.28-LICENSE
+
+@volar/source-map 2.4.28 — "MIT"
+third-party-licenses/volar__source-map@2.4.28-LICENSE
+
+@volar/typescript 2.4.28 — "MIT"
+third-party-licenses/volar__typescript@2.4.28-LICENSE
+
+@vue/compiler-core 3.5.43 — "MIT"
+third-party-licenses/vue__compiler-core@3.5.43-LICENSE
+
+@vue/compiler-dom 3.5.43 — "MIT"
+third-party-licenses/vue__compiler-dom@3.5.43-LICENSE
+
+@vue/compiler-sfc 3.5.43 — "MIT"
+third-party-licenses/vue__compiler-sfc@3.5.43-LICENSE
+
+@vue/compiler-ssr 3.5.43 — "MIT"
+third-party-licenses/vue__compiler-ssr@3.5.43-LICENSE
+
+@vue/devtools-api 8.2.1 — "MIT"
+third-party-licenses/vue__devtools-api@8.2.1-LICENSE
+
+@vue/devtools-kit 8.2.1 — "MIT"
+third-party-licenses/vue__devtools-kit@8.2.1-LICENSE
+
+@vue/devtools-shared 8.2.1 — "MIT"
+third-party-licenses/vue__devtools-shared@8.2.1-LICENSE
+
+@vue/language-core 3.3.11 — "MIT"
+third-party-licenses/vue__language-core@3.3.11-LICENSE
+
+@vue/reactivity 3.5.43 — "MIT"
+third-party-licenses/vue__reactivity@3.5.43-LICENSE
+
+@vue/runtime-core 3.5.43 — "MIT"
+third-party-licenses/vue__runtime-core@3.5.43-LICENSE
+
+@vue/runtime-dom 3.5.43 — "MIT"
+third-party-licenses/vue__runtime-dom@3.5.43-LICENSE
+
+@vue/server-renderer 3.5.43 — "MIT"
+third-party-licenses/vue__server-renderer@3.5.43-LICENSE
+
+@vue/shared 3.5.43 — "MIT"
+third-party-licenses/vue__shared@3.5.43-LICENSE
+
+acorn 8.19.0 — "MIT"
+third-party-licenses/acorn@8.19.0-LICENSE
+
+acorn-jsx 5.3.2 — "MIT"
+third-party-licenses/acorn-jsx@5.3.2-LICENSE
+
+ajv 6.15.0 — "MIT"
+third-party-licenses/ajv@6.15.0-LICENSE
+
+ajv 8.18.0 — "MIT"
+third-party-licenses/ajv@8.18.0-LICENSE
+
+alien-signals 3.2.1 — "MIT"
+third-party-licenses/alien-signals@3.2.1-LICENSE
+
+ansi-regex 5.0.1 — "MIT"
+third-party-licenses/ansi-regex@5.0.1-license
+
+ansi-regex 6.6.0 — "MIT"
+third-party-licenses/ansi-regex@6.6.0-license
+
+ansi-styles 4.3.0 — "MIT"
+third-party-licenses/ansi-styles@4.3.0-license
+
+ansi-styles 6.2.3 — "MIT"
+third-party-licenses/ansi-styles@6.2.3-license
+
+ansis 4.5.0 — "ISC"
+third-party-licenses/ansis@4.5.0-LICENSE
+
+any-promise 1.3.0 — "MIT"
+third-party-licenses/any-promise@1.3.0-LICENSE
+
+app-module-path 2.2.0 — "BSD-2-Clause"
+See package metadata; no separate top-level license file was installed.
+
+are-docs-informative 0.1.1 — "MIT"
+third-party-licenses/are-docs-informative@0.1.1-LICENSE.md
+
+argparse 2.0.1 — "Python-2.0"
+third-party-licenses/argparse@2.0.1-LICENSE
+
+argparse 3.0.4 — "PSF-2.0"
+third-party-licenses/argparse@3.0.4-LICENSE
+
+assertion-error 2.0.1 — "MIT"
+third-party-licenses/assertion-error@2.0.1-LICENSE
+
+ast-module-types 6.0.2 — "MIT"
+third-party-licenses/ast-module-types@6.0.2-LICENSE
+
+astral-regex 2.0.0 — "MIT"
+third-party-licenses/astral-regex@2.0.0-license
+
+balanced-match 4.0.4 — "MIT"
+third-party-licenses/balanced-match@4.0.4-LICENSE.md
+
+base64-js 1.5.1 — "MIT"
+third-party-licenses/base64-js@1.5.1-LICENSE
+
+baseline-browser-mapping 2.11.37 — "Apache-2.0"
+third-party-licenses/baseline-browser-mapping@2.11.37-LICENSE.txt
+
+benchmark 1.0.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+bidi-js 1.1.0 — "MIT"
+third-party-licenses/bidi-js@1.1.0-LICENSE.txt
+
+birpc 2.9.0 — "MIT"
+third-party-licenses/birpc@2.9.0-LICENSE
+
+bl 4.1.0 — "MIT"
+third-party-licenses/bl@4.1.0-LICENSE.md
+
+boolbase 1.0.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+brace-expansion 5.0.13 — "MIT"
+third-party-licenses/brace-expansion@5.0.13-LICENSE
+
+braces 3.0.3 — "MIT"
+third-party-licenses/braces@3.0.3-LICENSE
+
+browser-split 0.0.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+browserslist 4.29.5 — "MIT"
+third-party-licenses/browserslist@4.29.5-LICENSE
+
+buffer 5.7.1 — "MIT"
+third-party-licenses/buffer@5.7.1-LICENSE
+
+buffer-image-size 0.6.4 — "MIT"
+third-party-licenses/buffer-image-size@0.6.4-LICENSE
+
+builtin-modules 5.5.0 — "MIT"
+third-party-licenses/builtin-modules@5.5.0-license
+
+bun-types 1.4.4 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+cac 7.1.0 — "MIT"
+third-party-licenses/cac@7.1.0-LICENSE
+
+cacheable 2.5.0 — "MIT"
+third-party-licenses/cacheable@2.5.0-LICENSE
+
+callsites 3.1.0 — "MIT"
+third-party-licenses/callsites@3.1.0-license
+
+caniuse-lite 1.0.30001826 — "CC-BY-4.0"
+third-party-licenses/caniuse-lite@1.0.30001826-LICENSE
+
+ccount 2.0.1 — "MIT"
+third-party-licenses/ccount@2.0.1-license
+
+chai 6.3.0 — "MIT"
+third-party-licenses/chai@6.3.0-LICENSE
+
+chalk 4.1.2 — "MIT"
+third-party-licenses/chalk@4.1.2-license
+
+change-case 5.4.4 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+character-entities 2.0.2 — "MIT"
+third-party-licenses/character-entities@2.0.2-license
+
+chevrotain 13.2.0 — "Apache-2.0"
+third-party-licenses/chevrotain@13.2.0-LICENSE.txt
+
+ci-info 4.5.0 — "MIT"
+third-party-licenses/ci-info@4.5.0-LICENSE
+
+cli-cursor 3.1.0 — "MIT"
+third-party-licenses/cli-cursor@3.1.0-license
+
+cli-spinners 2.9.2 — "MIT"
+third-party-licenses/cli-spinners@2.9.2-license
+
+cliui 9.0.1 — "ISC"
+third-party-licenses/cliui@9.0.1-LICENSE.txt
+
+clone 1.0.4 — "MIT"
+third-party-licenses/clone@1.0.4-LICENSE
+
+codemirror 5.65.21 — "MIT"
+third-party-licenses/codemirror@5.65.21-LICENSE
+
+color-convert 2.0.1 — "MIT"
+third-party-licenses/color-convert@2.0.1-LICENSE
+
+color-name 1.1.4 — "MIT"
+third-party-licenses/color-name@1.1.4-LICENSE
+
+colord 2.12.0 — "MIT"
+third-party-licenses/colord@2.12.0-LICENSE.md
+
+commander 12.1.0 — "MIT"
+third-party-licenses/commander@12.1.0-LICENSE
+
+commander 2.20.3 — "MIT"
+third-party-licenses/commander@2.20.3-LICENSE
+
+commander 7.2.0 — "MIT"
+third-party-licenses/commander@7.2.0-LICENSE
+
+commander 8.3.0 — "MIT"
+third-party-licenses/commander@8.3.0-LICENSE
+
+comment-parser 1.4.7 — "MIT"
+third-party-licenses/comment-parser@1.4.7-LICENSE
+
+comment-parser 1.4.9 — "MIT"
+third-party-licenses/comment-parser@1.4.9-LICENSE
+
+commondir 1.0.1 — "MIT"
+third-party-licenses/commondir@1.0.1-LICENSE
+
+commonmark-spec 0.31.2 — "CC-BY-SA-4.0"
+third-party-licenses/commonmark-spec@0.31.2-LICENSE
+
+compare-versions 6.1.1 — "MIT"
+third-party-licenses/compare-versions@6.1.1-LICENSE
+
+confbox 0.1.8 — "MIT"
+third-party-licenses/confbox@0.1.8-LICENSE
+
+confbox 0.3.2 — "MIT"
+third-party-licenses/confbox@0.3.2-LICENSE
+
+convert-hrtime 5.0.0 — "MIT"
+third-party-licenses/convert-hrtime@5.0.0-license
+
+core-js-compat 3.51.0 — "MIT"
+third-party-licenses/core-js-compat@3.51.0-LICENSE
+
+cose-base 1.0.3 — "MIT"
+third-party-licenses/cose-base@1.0.3-LICENSE
+
+cose-base 2.2.0 — "MIT"
+third-party-licenses/cose-base@2.2.0-LICENSE
+
+cosmiconfig 9.0.2 — "MIT"
+third-party-licenses/cosmiconfig@9.0.2-LICENSE
+
+cross-spawn 7.0.6 — "MIT"
+third-party-licenses/cross-spawn@7.0.6-LICENSE
+
+css-functions-list 3.3.3 — "MIT"
+third-party-licenses/css-functions-list@3.3.3-LICENSE.md
+
+css-tree 3.2.1 — "MIT"
+third-party-licenses/css-tree@3.2.1-LICENSE
+
+csstype 3.2.3 — "MIT"
+third-party-licenses/csstype@3.2.3-LICENSE
+
+cytoscape 3.35.0 — "MIT"
+third-party-licenses/cytoscape@3.35.0-LICENSE
+
+cytoscape-cose-bilkent 4.1.0 — "MIT"
+third-party-licenses/cytoscape-cose-bilkent@4.1.0-LICENSE
+
+cytoscape-fcose 2.2.0 — "MIT"
+third-party-licenses/cytoscape-fcose@2.2.0-LICENSE
+
+d3 7.9.2 — "ISC"
+third-party-licenses/d3@7.9.2-LICENSE
+
+d3-array 2.12.1 — "BSD-3-Clause"
+third-party-licenses/d3-array@2.12.1-LICENSE
+
+d3-array 3.2.4 — "ISC"
+third-party-licenses/d3-array@3.2.4-LICENSE
+
+d3-array 3.2.5 — "ISC"
+third-party-licenses/d3-array@3.2.5-LICENSE
+
+d3-axis 3.0.1 — "ISC"
+third-party-licenses/d3-axis@3.0.1-LICENSE
+
+d3-brush 3.0.1 — "ISC"
+third-party-licenses/d3-brush@3.0.1-LICENSE
+
+d3-chord 3.0.2 — "ISC"
+third-party-licenses/d3-chord@3.0.2-LICENSE
+
+d3-color 3.1.1 — "ISC"
+third-party-licenses/d3-color@3.1.1-LICENSE
+
+d3-contour 4.0.3 — "ISC"
+third-party-licenses/d3-contour@4.0.3-LICENSE
+
+d3-delaunay 6.0.6 — "ISC"
+third-party-licenses/d3-delaunay@6.0.6-LICENSE
+
+d3-dispatch 3.0.2 — "ISC"
+third-party-licenses/d3-dispatch@3.0.2-LICENSE
+
+d3-drag 3.0.1 — "ISC"
+third-party-licenses/d3-drag@3.0.1-LICENSE
+
+d3-dsv 3.0.2 — "ISC"
+third-party-licenses/d3-dsv@3.0.2-LICENSE
+
+d3-ease 3.0.2 — "BSD-3-Clause"
+third-party-licenses/d3-ease@3.0.2-LICENSE
+
+d3-fetch 3.0.2 — "ISC"
+third-party-licenses/d3-fetch@3.0.2-LICENSE
+
+d3-force 3.0.1 — "ISC"
+third-party-licenses/d3-force@3.0.1-LICENSE
+
+d3-format 3.1.3 — "ISC"
+third-party-licenses/d3-format@3.1.3-LICENSE
+
+d3-geo 3.1.2 — "ISC"
+third-party-licenses/d3-geo@3.1.2-LICENSE
+
+d3-geo-projection 4.0.0 — "ISC"
+third-party-licenses/d3-geo-projection@4.0.0-LICENSE
+
+d3-hierarchy 3.1.3 — "ISC"
+third-party-licenses/d3-hierarchy@3.1.3-LICENSE
+
+d3-interpolate 3.0.2 — "ISC"
+third-party-licenses/d3-interpolate@3.0.2-LICENSE
+
+d3-path 1.0.9 — "BSD-3-Clause"
+third-party-licenses/d3-path@1.0.9-LICENSE
+
+d3-path 3.1.1 — "ISC"
+third-party-licenses/d3-path@3.1.1-LICENSE
+
+d3-polygon 3.0.2 — "ISC"
+third-party-licenses/d3-polygon@3.0.2-LICENSE
+
+d3-quadtree 3.0.2 — "ISC"
+third-party-licenses/d3-quadtree@3.0.2-LICENSE
+
+d3-random 3.0.2 — "ISC"
+third-party-licenses/d3-random@3.0.2-LICENSE
+
+d3-sankey 0.12.3 — "BSD-3-Clause"
+third-party-licenses/d3-sankey@0.12.3-LICENSE
+
+d3-scale 4.0.3 — "ISC"
+third-party-licenses/d3-scale@4.0.3-LICENSE
+
+d3-scale-chromatic 3.1.1 — "ISC"
+third-party-licenses/d3-scale-chromatic@3.1.1-LICENSE
+
+d3-selection 3.0.1 — "ISC"
+third-party-licenses/d3-selection@3.0.1-LICENSE
+
+d3-shape 1.3.7 — "BSD-3-Clause"
+third-party-licenses/d3-shape@1.3.7-LICENSE
+
+d3-shape 3.2.1 — "ISC"
+third-party-licenses/d3-shape@3.2.1-LICENSE
+
+d3-time 3.1.1 — "ISC"
+third-party-licenses/d3-time@3.1.1-LICENSE
+
+d3-time-format 4.1.1 — "ISC"
+third-party-licenses/d3-time-format@4.1.1-LICENSE
+
+d3-timer 3.0.2 — "ISC"
+third-party-licenses/d3-timer@3.0.2-LICENSE
+
+d3-transition 3.0.2 — "ISC"
+third-party-licenses/d3-transition@3.0.2-LICENSE
+
+d3-zoom 3.0.1 — "ISC"
+third-party-licenses/d3-zoom@3.0.1-LICENSE
+
+dagre-d3-es 7.0.14 — "MIT"
+third-party-licenses/dagre-d3-es@7.0.14-LICENSE.md
+
+data-urls 8.0.0 — "MIT"
+third-party-licenses/data-urls@8.0.0-LICENSE.txt
+
+dayjs 1.11.23 — "MIT"
+third-party-licenses/dayjs@1.11.23-LICENSE
+
+debug 4.4.3 — "MIT"
+third-party-licenses/debug@4.4.3-LICENSE
+
+decimal.js 10.6.0 — "MIT"
+third-party-licenses/decimal.js@10.6.0-LICENCE.md
+
+decode-named-character-reference 1.3.0 — "MIT"
+third-party-licenses/decode-named-character-reference@1.3.0-license
+
+deep-extend 0.6.0 — "MIT"
+third-party-licenses/deep-extend@0.6.0-LICENSE
+
+deep-is 0.1.4 — "MIT"
+third-party-licenses/deep-is@0.1.4-LICENSE
+
+defaults 1.0.4 — "MIT"
+third-party-licenses/defaults@1.0.4-LICENSE
+
+delaunator 5.1.0 — "ISC"
+third-party-licenses/delaunator@5.1.0-LICENSE
+
+dependency-tree 11.5.0 — "MIT"
+third-party-licenses/dependency-tree@11.5.0-LICENSE
+
+dequal 2.0.3 — "MIT"
+third-party-licenses/dequal@2.0.3-license
+
+detect-indent 7.0.2 — "MIT"
+third-party-licenses/detect-indent@7.0.2-license
+
+detect-libc 2.1.2 — "Apache-2.0"
+third-party-licenses/detect-libc@2.1.2-LICENSE
+
+detective-amd 6.1.0 — "MIT"
+third-party-licenses/detective-amd@6.1.0-LICENSE
+
+detective-cjs 6.1.1 — "MIT"
+third-party-licenses/detective-cjs@6.1.1-LICENSE
+
+detective-es6 5.0.2 — "MIT"
+third-party-licenses/detective-es6@5.0.2-LICENSE
+
+detective-postcss 8.0.4 — "MIT"
+third-party-licenses/detective-postcss@8.0.4-LICENSE
+
+detective-sass 6.0.2 — "MIT"
+third-party-licenses/detective-sass@6.0.2-LICENSE
+
+detective-scss 5.0.2 — "MIT"
+third-party-licenses/detective-scss@5.0.2-LICENSE
+
+detective-stylus 5.0.1 — "MIT"
+third-party-licenses/detective-stylus@5.0.1-LICENSE
+
+detective-typescript 14.1.2 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+detective-vue2 2.3.0 — "MIT"
+third-party-licenses/detective-vue2@2.3.0-LICENSE
+
+devlop 1.1.0 — "MIT"
+third-party-licenses/devlop@1.1.0-license
+
+diff-sequences 29.6.3 — "MIT"
+third-party-licenses/diff-sequences@29.6.3-LICENSE
+
+dompurify 3.4.17 — "(MPL-2.0 OR Apache-2.0)"
+third-party-licenses/dompurify@3.4.17-LICENSE
+
+electron-to-chromium 1.5.485 — "ISC"
+third-party-licenses/electron-to-chromium@1.5.485-LICENSE
+
+elkjs 0.12.1 — "EPL-2.0 OR GPL-3.0-or-later"
+third-party-licenses/elkjs@0.12.1-LICENSE.md
+
+emoji-regex 10.6.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+emoji-regex 8.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+empathic 2.1.0 — "MIT"
+third-party-licenses/empathic@2.1.0-license
+
+enhanced-resolve 5.27.0 — "MIT"
+third-party-licenses/enhanced-resolve@5.27.0-LICENSE
+
+entities 7.0.1 — "BSD-2-Clause"
+third-party-licenses/entities@7.0.1-LICENSE
+
+entities 8.1.0 — "BSD-2-Clause"
+third-party-licenses/entities@8.1.0-LICENSE
+
+entities 9.0.0 — "BSD-2-Clause"
+third-party-licenses/entities@9.0.0-LICENSE
+
+env-paths 2.2.1 — "MIT"
+third-party-licenses/env-paths@2.2.1-license
+
+error-ex 1.3.4 — "MIT"
+third-party-licenses/error-ex@1.3.4-LICENSE
+
+es-errors 1.3.0 — "MIT"
+third-party-licenses/es-errors@1.3.0-LICENSE
+
+es-module-lexer 2.3.2 — "MIT"
+third-party-licenses/es-module-lexer@2.3.2-LICENSE
+
+es-toolkit 1.53.2 — "MIT"
+third-party-licenses/es-toolkit@1.53.2-LICENSE
+third-party-licenses/es-toolkit@1.53.2-NOTICE
+
+escalade 3.2.0 — "MIT"
+third-party-licenses/escalade@3.2.0-license
+
+escape-string-regexp 4.0.0 — "MIT"
+third-party-licenses/escape-string-regexp@4.0.0-license
+
+escape-string-regexp 5.0.0 — "MIT"
+third-party-licenses/escape-string-regexp@5.0.0-license
+
+escodegen 2.1.0 — "BSD-2-Clause"
+third-party-licenses/escodegen@2.1.0-LICENSE.BSD
+
+eslint 10.14.0 — "MIT"
+third-party-licenses/eslint@10.14.0-LICENSE
+
+eslint-compat-utils 0.5.1 — "MIT"
+third-party-licenses/eslint-compat-utils@0.5.1-LICENSE
+
+eslint-config-flat-gitignore 2.4.0 — "MIT"
+third-party-licenses/eslint-config-flat-gitignore@2.4.0-LICENSE
+
+eslint-flat-config-utils 3.2.0 — "MIT"
+third-party-licenses/eslint-flat-config-utils@3.2.0-LICENSE
+
+eslint-formatting-reporter 0.0.0 — "MIT"
+third-party-licenses/eslint-formatting-reporter@0.0.0-LICENSE
+
+eslint-json-compat-utils 0.2.3 — "MIT"
+third-party-licenses/eslint-json-compat-utils@0.2.3-LICENSE
+
+eslint-merge-processors 2.0.0 — "MIT"
+third-party-licenses/eslint-merge-processors@2.0.0-LICENSE
+
+eslint-parser-plain 0.1.1 — "MIT"
+third-party-licenses/eslint-parser-plain@0.1.1-LICENSE
+
+eslint-plugin-antfu 3.3.1 — "MIT"
+third-party-licenses/eslint-plugin-antfu@3.3.1-LICENSE
+
+eslint-plugin-command 4.0.0 — "MIT"
+third-party-licenses/eslint-plugin-command@4.0.0-LICENSE
+
+eslint-plugin-es-x 7.8.0 — "MIT"
+third-party-licenses/eslint-plugin-es-x@7.8.0-LICENSE
+
+eslint-plugin-format 2.0.1 — "MIT"
+third-party-licenses/eslint-plugin-format@2.0.1-LICENSE
+
+eslint-plugin-import-lite 0.6.0 — "MIT"
+third-party-licenses/eslint-plugin-import-lite@0.6.0-LICENSE
+
+eslint-plugin-jsdoc 64.5.4 — "BSD-3-Clause"
+third-party-licenses/eslint-plugin-jsdoc@64.5.4-LICENSE
+
+eslint-plugin-jsonc 3.4.2 — "MIT"
+third-party-licenses/eslint-plugin-jsonc@3.4.2-LICENSE
+
+eslint-plugin-n 18.5.0 — "MIT"
+third-party-licenses/eslint-plugin-n@18.5.0-LICENSE
+
+eslint-plugin-no-only-tests 3.4.0 — "MIT"
+third-party-licenses/eslint-plugin-no-only-tests@3.4.0-LICENSE
+
+eslint-plugin-perfectionist 5.13.0 — "MIT"
+third-party-licenses/eslint-plugin-perfectionist@5.13.0-license.md
+
+eslint-plugin-pnpm 1.9.1 — "MIT"
+third-party-licenses/eslint-plugin-pnpm@1.9.1-LICENSE.md
+
+eslint-plugin-regexp 3.3.3 — "MIT"
+third-party-licenses/eslint-plugin-regexp@3.3.3-LICENSE
+
+eslint-plugin-toml 1.5.0 — "MIT"
+third-party-licenses/eslint-plugin-toml@1.5.0-LICENSE
+
+eslint-plugin-unicorn 74.0.0 — "MIT"
+third-party-licenses/eslint-plugin-unicorn@74.0.0-license
+
+eslint-plugin-unused-imports 4.4.1 — "MIT"
+third-party-licenses/eslint-plugin-unused-imports@4.4.1-LICENSE
+
+eslint-plugin-vue 10.12.1 — "MIT"
+third-party-licenses/eslint-plugin-vue@10.12.1-LICENSE
+
+eslint-plugin-yml 3.10.0 — "MIT"
+third-party-licenses/eslint-plugin-yml@3.10.0-LICENSE
+
+eslint-processor-vue-blocks 2.0.0 — "MIT"
+third-party-licenses/eslint-processor-vue-blocks@2.0.0-LICENSE
+
+eslint-scope 9.1.2 — "BSD-2-Clause"
+third-party-licenses/eslint-scope@9.1.2-LICENSE
+
+eslint-visitor-keys 3.4.3 — "Apache-2.0"
+third-party-licenses/eslint-visitor-keys@3.4.3-LICENSE
+
+eslint-visitor-keys 4.2.1 — "Apache-2.0"
+third-party-licenses/eslint-visitor-keys@4.2.1-LICENSE
+
+eslint-visitor-keys 5.0.1 — "Apache-2.0"
+third-party-licenses/eslint-visitor-keys@5.0.1-LICENSE
+
+espree 10.4.0 — "BSD-2-Clause"
+third-party-licenses/espree@10.4.0-LICENSE
+
+espree 11.2.0 — "BSD-2-Clause"
+third-party-licenses/espree@11.2.0-LICENSE
+
+esprima 4.0.1 — "BSD-2-Clause"
+third-party-licenses/esprima@4.0.1-LICENSE.BSD
+
+esquery 1.7.0 — "BSD-3-Clause"
+third-party-licenses/esquery@1.7.0-license.txt
+
+esrecurse 4.3.0 — "BSD-2-Clause"
+See package metadata; no separate top-level license file was installed.
+
+estraverse 5.3.0 — "BSD-2-Clause"
+third-party-licenses/estraverse@5.3.0-LICENSE.BSD
+
+estree-walker 2.0.2 — "MIT"
+third-party-licenses/estree-walker@2.0.2-LICENSE
+
+estree-walker 3.0.3 — "MIT"
+third-party-licenses/estree-walker@3.0.3-LICENSE
+
+esutils 2.0.3 — "BSD-2-Clause"
+third-party-licenses/esutils@2.0.3-LICENSE.BSD
+
+eve 0.5.4 — "Apache-2.0"
+third-party-licenses/eve@0.5.4-LICENSE
+
+expect-type 1.4.0 — "Apache-2.0"
+third-party-licenses/expect-type@1.4.0-LICENSE
+
+exsolve 1.2.0 — "MIT"
+third-party-licenses/exsolve@1.2.0-LICENSE
+
+fast-deep-equal 3.1.3 — "MIT"
+third-party-licenses/fast-deep-equal@3.1.3-LICENSE
+
+fast-diff 1.3.0 — "Apache-2.0"
+third-party-licenses/fast-diff@1.3.0-LICENSE
+
+fast-glob 3.3.3 — "MIT"
+third-party-licenses/fast-glob@3.3.3-LICENSE
+
+fast-json-patch 3.1.1 — "MIT"
+third-party-licenses/fast-json-patch@3.1.1-LICENSE.txt
+
+fast-json-stable-stringify 2.1.0 — "MIT"
+third-party-licenses/fast-json-stable-stringify@2.1.0-LICENSE
+
+fast-levenshtein 2.0.6 — "MIT"
+third-party-licenses/fast-levenshtein@2.0.6-LICENSE.md
+
+fast-string-truncated-width 3.0.3 — "MIT"
+third-party-licenses/fast-string-truncated-width@3.0.3-license
+
+fast-string-width 3.0.2 — "MIT"
+third-party-licenses/fast-string-width@3.0.2-license
+
+fast-uri 3.1.9 — "BSD-3-Clause"
+third-party-licenses/fast-uri@3.1.9-LICENSE
+
+fast-wrap-ansi 0.2.2 — "MIT"
+third-party-licenses/fast-wrap-ansi@0.2.2-LICENSE
+
+fastest-levenshtein 1.0.16 — "MIT"
+third-party-licenses/fastest-levenshtein@1.0.16-LICENSE.md
+
+fastq 1.20.3 — "ISC"
+third-party-licenses/fastq@1.20.3-LICENSE
+
+fault 2.0.1 — "MIT"
+third-party-licenses/fault@2.0.1-license
+
+fdir 6.5.0 — "MIT"
+third-party-licenses/fdir@6.5.0-LICENSE
+
+file-entry-cache 11.1.5 — "MIT"
+third-party-licenses/file-entry-cache@11.1.5-LICENSE
+
+filing-cabinet 5.5.1 — "MIT"
+third-party-licenses/filing-cabinet@5.5.1-LICENSE
+
+fill-range 7.1.1 — "MIT"
+third-party-licenses/fill-range@7.1.1-LICENSE
+
+find-up 5.0.0 — "MIT"
+third-party-licenses/find-up@5.0.0-license
+
+find-up-simple 1.0.1 — "MIT"
+third-party-licenses/find-up-simple@1.0.1-license
+
+flat-cache 6.1.23 — "MIT"
+third-party-licenses/flat-cache@6.1.23-LICENSE
+
+flatted 3.4.4 — "ISC"
+third-party-licenses/flatted@3.4.4-LICENSE
+
+flowchart.js 1.18.1 — "MIT"
+third-party-licenses/flowchart.js@1.18.1-license
+
+fsevents 2.3.3 — "MIT"
+third-party-licenses/fsevents@2.3.3-LICENSE
+
+function-bind 1.1.2 — "MIT"
+third-party-licenses/function-bind@1.1.2-LICENSE
+
+function-timeout 1.0.2 — "MIT"
+third-party-licenses/function-timeout@1.0.2-license
+
+fuse.js 7.5.0 — "Apache-2.0"
+third-party-licenses/fuse.js@7.5.0-LICENSE
+
+get-amd-module-type 6.0.2 — "MIT"
+third-party-licenses/get-amd-module-type@6.0.2-LICENSE
+
+get-caller-file 2.0.5 — "ISC"
+third-party-licenses/get-caller-file@2.0.5-LICENSE.md
+
+get-east-asian-width 1.7.0 — "MIT"
+third-party-licenses/get-east-asian-width@1.7.0-license
+
+get-own-enumerable-property-symbols 3.0.2 — "ISC"
+third-party-licenses/get-own-enumerable-property-symbols@3.0.2-LICENSE
+
+get-tsconfig 4.14.3 — "MIT"
+third-party-licenses/get-tsconfig@4.14.3-LICENSE
+
+github-markdown-css 5.9.0 — "MIT"
+third-party-licenses/github-markdown-css@5.9.0-license
+
+github-slugger 2.0.0 — "ISC"
+third-party-licenses/github-slugger@2.0.0-LICENSE
+
+glob-parent 5.1.2 — "ISC"
+third-party-licenses/glob-parent@5.1.2-LICENSE
+
+glob-parent 6.0.2 — "ISC"
+third-party-licenses/glob-parent@6.0.2-LICENSE
+
+glob-to-regexp 0.4.1 — "BSD-2-Clause"
+See package metadata; no separate top-level license file was installed.
+
+global-modules 2.0.0 — "MIT"
+third-party-licenses/global-modules@2.0.0-LICENSE
+
+global-prefix 3.0.0 — "MIT"
+third-party-licenses/global-prefix@3.0.0-LICENSE
+
+globals 15.15.0 — "MIT"
+third-party-licenses/globals@15.15.0-license
+
+globals 17.14.0 — "MIT"
+third-party-licenses/globals@17.14.0-license
+
+globby 16.2.4 — "MIT"
+third-party-licenses/globby@16.2.4-license
+
+globjoin 0.1.4 — "MIT"
+third-party-licenses/globjoin@0.1.4-LICENSE
+
+globrex 0.1.2 — "MIT"
+third-party-licenses/globrex@0.1.2-license
+
+gonzales-pe 4.3.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+graceful-fs 4.2.12 — "BlueOak-1.0.0"
+third-party-licenses/graceful-fs@4.2.12-LICENSE.md
+
+hachure-fill 0.5.2 — "MIT"
+third-party-licenses/hachure-fill@0.5.2-LICENSE
+
+happy-dom 21.0.4 — "MIT"
+third-party-licenses/happy-dom@21.0.4-LICENSE
+
+has-flag 4.0.0 — "MIT"
+third-party-licenses/has-flag@4.0.0-license
+
+has-flag 5.0.1 — "MIT"
+third-party-licenses/has-flag@5.0.1-license
+
+hashery 1.5.1 — "MIT"
+third-party-licenses/hashery@1.5.1-LICENSE
+
+hasown 2.0.4 — "MIT"
+third-party-licenses/hasown@2.0.4-LICENSE
+
+hookable 5.5.3 — "MIT"
+third-party-licenses/hookable@5.5.3-LICENSE.md
+
+hookified 1.15.1 — "MIT"
+third-party-licenses/hookified@1.15.1-LICENSE
+
+hookified 2.2.0 — "MIT"
+third-party-licenses/hookified@2.2.0-LICENSE
+
+html-encoding-sniffer 7.0.0 — "MIT"
+third-party-licenses/html-encoding-sniffer@7.0.0-LICENSE.txt
+
+html-entities 2.6.0 — "MIT"
+third-party-licenses/html-entities@2.6.0-LICENSE
+
+html-tags 5.1.0 — "MIT"
+third-party-licenses/html-tags@5.1.0-license
+
+iconv-lite 0.6.3 — "MIT"
+third-party-licenses/iconv-lite@0.6.3-LICENSE
+
+identifier-regex 1.1.0 — "MIT"
+third-party-licenses/identifier-regex@1.1.0-license
+
+ieee754 1.2.1 — "BSD-3-Clause"
+third-party-licenses/ieee754@1.2.1-LICENSE
+
+ignore 5.3.2 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+ignore 7.0.14 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+import-fresh 3.3.1 — "MIT"
+third-party-licenses/import-fresh@3.3.1-license
+
+import-meta-resolve 4.2.0 — "MIT"
+third-party-licenses/import-meta-resolve@4.2.0-license
+
+imurmurhash 0.1.4 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+indent-string 5.0.0 — "MIT"
+third-party-licenses/indent-string@5.0.0-license
+
+inherits 2.0.4 — "ISC"
+third-party-licenses/inherits@2.0.4-LICENSE
+
+ini 1.3.8 — "ISC"
+third-party-licenses/ini@1.3.8-LICENSE
+
+internmap 1.0.1 — "ISC"
+third-party-licenses/internmap@1.0.1-LICENSE
+
+is-arrayish 0.2.1 — "MIT"
+third-party-licenses/is-arrayish@0.2.1-LICENSE
+
+is-builtin-module 5.0.0 — "MIT"
+third-party-licenses/is-builtin-module@5.0.0-license
+
+is-core-module 2.18.0 — "MIT"
+third-party-licenses/is-core-module@2.18.0-LICENSE
+
+is-extglob 2.1.1 — "MIT"
+third-party-licenses/is-extglob@2.1.1-LICENSE
+
+is-fullwidth-code-point 3.0.0 — "MIT"
+third-party-licenses/is-fullwidth-code-point@3.0.0-license
+
+is-glob 4.0.3 — "MIT"
+third-party-licenses/is-glob@4.0.3-LICENSE
+
+is-identifier 1.1.0 — "MIT"
+third-party-licenses/is-identifier@1.1.0-license
+
+is-interactive 1.0.0 — "MIT"
+third-party-licenses/is-interactive@1.0.0-license
+
+is-number 7.0.0 — "MIT"
+third-party-licenses/is-number@7.0.0-LICENSE
+
+is-obj 1.0.1 — "MIT"
+third-party-licenses/is-obj@1.0.1-license
+
+is-path-inside 4.0.0 — "MIT"
+third-party-licenses/is-path-inside@4.0.0-license
+
+is-potential-custom-element-name 1.0.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+is-regexp 1.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+is-unicode-supported 0.1.0 — "MIT"
+third-party-licenses/is-unicode-supported@0.1.0-license
+
+is-url-superb 4.0.0 — "MIT"
+third-party-licenses/is-url-superb@4.0.0-license
+
+isexe 2.0.0 — "ISC"
+third-party-licenses/isexe@2.0.0-LICENSE
+
+joplin-turndown-plugin-gfm 1.0.12 — "MIT"
+third-party-licenses/joplin-turndown-plugin-gfm@1.0.12-LICENSE
+
+js-tokens 4.0.0 — "MIT"
+third-party-licenses/js-tokens@4.0.0-LICENSE
+
+js-yaml 4.3.2 — "MIT"
+third-party-licenses/js-yaml@4.3.2-LICENSE
+
+js-yaml 5.5.0 — "MIT"
+third-party-licenses/js-yaml@5.5.0-LICENSE
+
+jsdoc-type-pratt-parser 9.0.1 — "MIT"
+third-party-licenses/jsdoc-type-pratt-parser@9.0.1-LICENSE
+
+jsdoc-type-pratt-parser 9.2.3 — "MIT"
+third-party-licenses/jsdoc-type-pratt-parser@9.2.3-LICENSE
+
+jsdom 30.1.3 — "MIT"
+third-party-licenses/jsdom@30.1.3-LICENSE.txt
+
+jsesc 3.1.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+json-parse-even-better-errors 2.3.1 — "MIT"
+third-party-licenses/json-parse-even-better-errors@2.3.1-LICENSE.md
+
+json-schema-traverse 0.4.1 — "MIT"
+third-party-licenses/json-schema-traverse@0.4.1-LICENSE
+
+json-schema-traverse 1.0.0 — "MIT"
+third-party-licenses/json-schema-traverse@1.0.0-LICENSE
+
+json-stable-stringify-without-jsonify 1.0.1 — "MIT"
+third-party-licenses/json-stable-stringify-without-jsonify@1.0.1-LICENSE
+
+json-stringify-pretty-compact 4.0.0 — "MIT"
+third-party-licenses/json-stringify-pretty-compact@4.0.0-LICENSE
+
+json5 2.2.3 — "MIT"
+third-party-licenses/json5@2.2.3-LICENSE.md
+
+jsonc-eslint-parser 3.3.0 — "MIT"
+third-party-licenses/jsonc-eslint-parser@3.3.0-LICENSE
+
+katex 0.18.2 — "MIT"
+third-party-licenses/katex@0.18.2-LICENSE
+
+keyv 5.6.0 — "MIT"
+third-party-licenses/keyv@5.6.0-LICENSE
+
+kind-of 6.0.3 — "MIT"
+third-party-licenses/kind-of@6.0.3-LICENSE
+
+kolorist 1.8.0 — "MIT"
+third-party-licenses/kolorist@1.8.0-LICENSE
+
+layout-base 1.0.2 — "MIT"
+third-party-licenses/layout-base@1.0.2-LICENSE
+
+layout-base 2.0.1 — "MIT"
+third-party-licenses/layout-base@2.0.1-LICENSE
+
+levn 0.4.1 — "MIT"
+third-party-licenses/levn@0.4.1-LICENSE
+
+lightningcss 1.33.0 — "MPL-2.0"
+third-party-licenses/lightningcss@1.33.0-LICENSE
+
+lightningcss-darwin-arm64 1.33.0 — "MPL-2.0"
+third-party-licenses/lightningcss-darwin-arm64@1.33.0-LICENSE
+
+lines-and-columns 1.2.4 — "MIT"
+third-party-licenses/lines-and-columns@1.2.4-LICENSE
+
+ljharb-monorepo-symlink-test 0.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+loader-utils 3.3.1 — "MIT"
+third-party-licenses/loader-utils@3.3.1-LICENSE
+
+local-pkg 1.2.1 — "MIT"
+third-party-licenses/local-pkg@1.2.1-LICENSE
+
+locate-path 6.0.0 — "MIT"
+third-party-licenses/locate-path@6.0.0-license
+
+lodash-es 4.18.1 — "MIT"
+third-party-licenses/lodash-es@4.18.1-LICENSE
+
+lodash.escape 4.0.1 — "MIT"
+third-party-licenses/lodash.escape@4.0.1-LICENSE
+
+lodash.forown 4.4.0 — "MIT"
+third-party-licenses/lodash.forown@4.4.0-LICENSE
+
+lodash.kebabcase 4.1.1 — "MIT"
+third-party-licenses/lodash.kebabcase@4.1.1-LICENSE
+
+lodash.remove 4.7.0 — "MIT"
+third-party-licenses/lodash.remove@4.7.0-LICENSE
+
+lodash.uniq 4.5.0 — "MIT"
+third-party-licenses/lodash.uniq@4.5.0-LICENSE
+
+log-symbols 4.1.0 — "MIT"
+third-party-licenses/log-symbols@4.1.0-license
+
+longest-streak 3.1.0 — "MIT"
+third-party-licenses/longest-streak@3.1.0-license
+
+lru-cache 11.5.3 — "BlueOak-1.0.0"
+third-party-licenses/lru-cache@11.5.3-LICENSE.md
+
+madge 8.0.0 — "MIT"
+third-party-licenses/madge@8.0.0-LICENSE
+
+magic-string 0.30.21 — "MIT"
+third-party-licenses/magic-string@0.30.21-LICENSE
+
+magic-string 1.4.5 — "MIT"
+third-party-licenses/magic-string@1.4.5-LICENSE
+
+magicast 0.5.5 — "MIT"
+third-party-licenses/magicast@0.5.5-LICENSE
+
+make-asynchronous 1.1.0 — "MIT"
+third-party-licenses/make-asynchronous@1.1.0-license
+
+markdown-table 3.1.0 — "MIT"
+third-party-licenses/markdown-table@3.1.0-license
+
+marked 16.4.2 — "MIT"
+third-party-licenses/marked@16.4.2-LICENSE.md
+
+marked 18.1.0 — "MIT"
+third-party-licenses/marked@18.1.0-LICENSE
+
+marked-highlight 2.2.4 — "MIT"
+third-party-licenses/marked-highlight@2.2.4-LICENSE
+
+mathml-tag-names 4.0.0 — "MIT"
+third-party-licenses/mathml-tag-names@4.0.0-license
+
+mdast-util-find-and-replace 3.0.4 — "MIT"
+third-party-licenses/mdast-util-find-and-replace@3.0.4-license
+
+mdast-util-from-markdown 2.1.0 — "MIT"
+third-party-licenses/mdast-util-from-markdown@2.1.0-license
+
+mdast-util-frontmatter 2.0.1 — "MIT"
+third-party-licenses/mdast-util-frontmatter@2.0.1-license
+
+mdast-util-gfm 3.1.0 — "MIT"
+third-party-licenses/mdast-util-gfm@3.1.0-license
+
+mdast-util-gfm-autolink-literal 2.1.0 — "MIT"
+third-party-licenses/mdast-util-gfm-autolink-literal@2.1.0-license
+
+mdast-util-gfm-footnote 2.1.0 — "MIT"
+third-party-licenses/mdast-util-gfm-footnote@2.1.0-license
+
+mdast-util-gfm-strikethrough 2.0.1 — "MIT"
+third-party-licenses/mdast-util-gfm-strikethrough@2.0.1-license
+
+mdast-util-gfm-table 2.0.1 — "MIT"
+third-party-licenses/mdast-util-gfm-table@2.0.1-license
+
+mdast-util-gfm-task-list-item 2.0.1 — "MIT"
+third-party-licenses/mdast-util-gfm-task-list-item@2.0.1-license
+
+mdast-util-math 3.0.0 — "MIT"
+third-party-licenses/mdast-util-math@3.0.0-license
+
+mdast-util-phrasing 4.1.0 — "MIT"
+third-party-licenses/mdast-util-phrasing@4.1.0-license
+
+mdast-util-to-markdown 2.2.3 — "MIT"
+third-party-licenses/mdast-util-to-markdown@2.2.3-license
+
+mdast-util-to-string 4.0.0 — "MIT"
+third-party-licenses/mdast-util-to-string@4.0.0-license
+
+mdn-data 2.27.1 — "CC0-1.0"
+third-party-licenses/mdn-data@2.27.1-LICENSE
+
+mdn-data 2.37.2 — "CC0-1.0"
+third-party-licenses/mdn-data@2.37.2-LICENSE
+
+meow 14.1.0 — "MIT"
+third-party-licenses/meow@14.1.0-license
+
+merge2 1.4.1 — "MIT"
+third-party-licenses/merge2@1.4.1-LICENSE
+
+mermaid 12.3.0 — "MIT"
+third-party-licenses/mermaid@12.3.0-LICENSE
+
+micromark 4.0.3 — "MIT"
+third-party-licenses/micromark@4.0.3-license
+
+micromark-core-commonmark 2.0.4 — "MIT"
+third-party-licenses/micromark-core-commonmark@2.0.4-license
+
+micromark-extension-frontmatter 2.0.0 — "MIT"
+third-party-licenses/micromark-extension-frontmatter@2.0.0-license
+
+micromark-extension-gfm 3.0.0 — "MIT"
+third-party-licenses/micromark-extension-gfm@3.0.0-license
+
+micromark-extension-gfm-autolink-literal 2.1.0 — "MIT"
+third-party-licenses/micromark-extension-gfm-autolink-literal@2.1.0-license
+
+micromark-extension-gfm-footnote 2.1.0 — "MIT"
+third-party-licenses/micromark-extension-gfm-footnote@2.1.0-license
+
+micromark-extension-gfm-strikethrough 2.1.0 — "MIT"
+third-party-licenses/micromark-extension-gfm-strikethrough@2.1.0-license
+
+micromark-extension-gfm-table 2.1.2 — "MIT"
+third-party-licenses/micromark-extension-gfm-table@2.1.2-license
+
+micromark-extension-gfm-tagfilter 2.0.0 — "MIT"
+third-party-licenses/micromark-extension-gfm-tagfilter@2.0.0-license
+
+micromark-extension-gfm-task-list-item 2.1.0 — "MIT"
+third-party-licenses/micromark-extension-gfm-task-list-item@2.1.0-license
+
+micromark-extension-math 3.1.0 — "MIT"
+third-party-licenses/micromark-extension-math@3.1.0-license
+
+micromark-factory-destination 2.0.1 — "MIT"
+third-party-licenses/micromark-factory-destination@2.0.1-license
+
+micromark-factory-label 2.0.1 — "MIT"
+third-party-licenses/micromark-factory-label@2.0.1-license
+
+micromark-factory-space 2.1.0 — "MIT"
+third-party-licenses/micromark-factory-space@2.1.0-license
+
+micromark-factory-title 2.0.1 — "MIT"
+third-party-licenses/micromark-factory-title@2.0.1-license
+
+micromark-factory-whitespace 2.0.1 — "MIT"
+third-party-licenses/micromark-factory-whitespace@2.0.1-license
+
+micromark-util-character 2.1.1 — "MIT"
+third-party-licenses/micromark-util-character@2.1.1-license
+
+micromark-util-chunked 2.0.1 — "MIT"
+third-party-licenses/micromark-util-chunked@2.0.1-license
+
+micromark-util-classify-character 2.0.1 — "MIT"
+third-party-licenses/micromark-util-classify-character@2.0.1-license
+
+micromark-util-combine-extensions 2.0.1 — "MIT"
+third-party-licenses/micromark-util-combine-extensions@2.0.1-license
+
+micromark-util-decode-numeric-character-reference 2.0.2 — "MIT"
+third-party-licenses/micromark-util-decode-numeric-character-reference@2.0.2-license
+
+micromark-util-decode-string 2.0.1 — "MIT"
+third-party-licenses/micromark-util-decode-string@2.0.1-license
+
+micromark-util-edit-map 1.0.0 — "MIT"
+third-party-licenses/micromark-util-edit-map@1.0.0-license
+
+micromark-util-encode 2.0.1 — "MIT"
+third-party-licenses/micromark-util-encode@2.0.1-license
+
+micromark-util-html-tag-name 2.0.1 — "MIT"
+third-party-licenses/micromark-util-html-tag-name@2.0.1-license
+
+micromark-util-normalize-identifier 2.0.1 — "MIT"
+third-party-licenses/micromark-util-normalize-identifier@2.0.1-license
+
+micromark-util-resolve-all 2.0.1 — "MIT"
+third-party-licenses/micromark-util-resolve-all@2.0.1-license
+
+micromark-util-sanitize-uri 2.0.1 — "MIT"
+third-party-licenses/micromark-util-sanitize-uri@2.0.1-license
+
+micromark-util-subtokenize 2.1.0 — "MIT"
+third-party-licenses/micromark-util-subtokenize@2.1.0-license
+
+micromark-util-symbol 2.0.1 — "MIT"
+third-party-licenses/micromark-util-symbol@2.0.1-license
+
+micromark-util-types 2.0.3 — "MIT"
+third-party-licenses/micromark-util-types@2.0.3-license
+
+micromatch 4.0.8 — "MIT"
+third-party-licenses/micromatch@4.0.8-LICENSE
+
+mimic-fn 2.1.0 — "MIT"
+third-party-licenses/mimic-fn@2.1.0-license
+
+minimatch 11.0.1 — "BlueOak-1.0.0"
+third-party-licenses/minimatch@11.0.1-LICENSE.md
+
+minimist 1.2.8 — "MIT"
+third-party-licenses/minimist@1.2.8-LICENSE
+
+mlly 1.8.2 — "MIT"
+third-party-licenses/mlly@1.8.2-LICENSE
+
+module-definition 6.0.2 — "MIT"
+third-party-licenses/module-definition@6.0.2-LICENSE
+
+module-lookup-amd 9.1.3 — "MIT"
+third-party-licenses/module-lookup-amd@9.1.3-LICENSE
+
+module-replacements 3.4.0 — "MIT"
+third-party-licenses/module-replacements@3.4.0-LICENSE
+
+mrmime 1.0.1 — "MIT"
+third-party-licenses/mrmime@1.0.1-license
+
+ms 2.1.3 — "MIT"
+third-party-licenses/ms@2.1.3-license.md
+
+muggle-string 0.4.1 — "MIT"
+third-party-licenses/muggle-string@0.4.1-LICENSE
+
+muya-e2e 0.0.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+muya-examples 0.0.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+mylib 0.0.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+nanoid 3.3.20 — "MIT"
+third-party-licenses/nanoid@3.3.20-LICENSE
+
+natural-compare 1.4.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+natural-orderby 5.0.0 — "MIT"
+third-party-licenses/natural-orderby@5.0.0-LICENSE.md
+
+node-releases 2.0.64 — "MIT"
+third-party-licenses/node-releases@2.0.64-LICENSE
+
+node-source-walk 7.0.2 — "MIT"
+third-party-licenses/node-source-walk@7.0.2-LICENSE
+
+normalize-path 3.0.0 — "MIT"
+third-party-licenses/normalize-path@3.0.0-LICENSE
+
+nostics 1.3.0 — "MIT"
+third-party-licenses/nostics@1.3.0-LICENSE
+
+nth-check 2.1.1 — "BSD-2-Clause"
+third-party-licenses/nth-check@2.1.1-LICENSE
+
+object-assign 4.1.1 — "MIT"
+third-party-licenses/object-assign@4.1.1-license
+
+object-deep-merge 2.0.1 — "MIT"
+third-party-licenses/object-deep-merge@2.0.1-LICENSE
+
+obug 3.0.0 — "MIT"
+third-party-licenses/obug@3.0.0-LICENSE
+
+ohash 2.0.12 — "MIT"
+third-party-licenses/ohash@2.0.12-LICENSE
+
+onetime 5.1.2 — "MIT"
+third-party-licenses/onetime@5.1.2-license
+
+optionator 0.9.4 — "MIT"
+third-party-licenses/optionator@0.9.4-LICENSE
+
+ora 5.4.1 — "MIT"
+third-party-licenses/ora@5.4.1-license
+
+ot-json1 1.0.2 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+ot-text-unicode 4.0.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+oxfmt 0.35.0 — "MIT"
+third-party-licenses/oxfmt@0.35.0-LICENSE
+
+p-event 6.0.1 — "MIT"
+third-party-licenses/p-event@6.0.1-license
+
+p-limit 3.1.0 — "MIT"
+third-party-licenses/p-limit@3.1.0-license
+
+p-locate 5.0.0 — "MIT"
+third-party-licenses/p-locate@5.0.0-license
+
+p-timeout 6.1.4 — "MIT"
+third-party-licenses/p-timeout@6.1.4-license
+
+package-manager-detector 1.9.0 — "MIT"
+third-party-licenses/package-manager-detector@1.9.0-LICENSE
+
+parent-module 1.0.1 — "MIT"
+third-party-licenses/parent-module@1.0.1-license
+
+parse-gitignore 2.0.0 — "MIT"
+third-party-licenses/parse-gitignore@2.0.0-LICENSE
+
+parse-imports-exports 0.2.4 — "MIT"
+third-party-licenses/parse-imports-exports@0.2.4-LICENSE
+
+parse-json 5.2.0 — "MIT"
+third-party-licenses/parse-json@5.2.0-license
+
+parse-ms 2.1.0 — "MIT"
+third-party-licenses/parse-ms@2.1.0-license
+
+parse-sel 1.0.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+parse-statements 1.0.11 — "MIT"
+third-party-licenses/parse-statements@1.0.11-LICENSE
+
+parse5 8.1.1 — "MIT"
+third-party-licenses/parse5@8.1.1-LICENSE
+
+path-browserify 1.0.1 — "MIT"
+third-party-licenses/path-browserify@1.0.1-LICENSE
+
+path-data-parser 0.1.0 — "MIT"
+third-party-licenses/path-data-parser@0.1.0-LICENSE
+
+path-exists 4.0.0 — "MIT"
+third-party-licenses/path-exists@4.0.0-license
+
+path-key 3.1.1 — "MIT"
+third-party-licenses/path-key@3.1.1-license
+
+path-parse 1.0.7 — "MIT"
+third-party-licenses/path-parse@1.0.7-LICENSE
+
+pathe 2.0.3 — "MIT"
+third-party-licenses/pathe@2.0.3-LICENSE
+
+perfect-debounce 2.1.0 — "MIT"
+third-party-licenses/perfect-debounce@2.1.0-LICENSE
+
+picocolors 1.1.1 — "ISC"
+third-party-licenses/picocolors@1.1.1-LICENSE
+
+picomatch 2.3.2 — "MIT"
+third-party-licenses/picomatch@2.3.2-LICENSE
+
+picomatch 4.0.7 — "MIT"
+third-party-licenses/picomatch@4.0.7-LICENSE
+
+pinia 4.0.3 — "MIT"
+third-party-licenses/pinia@4.0.3-LICENSE
+
+pkg-types 1.3.1 — "MIT"
+third-party-licenses/pkg-types@1.3.1-LICENSE
+
+pkg-types 2.4.0 — "MIT"
+third-party-licenses/pkg-types@2.4.0-LICENSE
+
+plantuml-encoder 1.4.0 — "MIT"
+third-party-licenses/plantuml-encoder@1.4.0-LICENSE
+
+pluralize 8.0.0 — "MIT"
+third-party-licenses/pluralize@8.0.0-LICENSE
+
+pnpm-workspace-yaml 1.9.1 — "MIT"
+third-party-licenses/pnpm-workspace-yaml@1.9.1-LICENSE.md
+
+points-on-curve 0.2.0 — "MIT"
+third-party-licenses/points-on-curve@0.2.0-LICENSE
+
+points-on-path 0.2.1 — "MIT"
+third-party-licenses/points-on-path@0.2.1-LICENSE
+
+postcss 8.5.32 — "MIT"
+third-party-licenses/postcss@8.5.32-LICENSE
+
+postcss-safe-parser 7.1.0 — "MIT"
+third-party-licenses/postcss-safe-parser@7.1.0-LICENSE
+
+postcss-selector-parser 7.2.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+postcss-sorting 10.0.0 — "MIT"
+third-party-licenses/postcss-sorting@10.0.0-LICENSE.md
+
+postcss-value-parser 4.2.0 — "MIT"
+third-party-licenses/postcss-value-parser@4.2.0-LICENSE
+
+postcss-values-parser 6.0.2 — "MPL-2.0"
+third-party-licenses/postcss-values-parser@6.0.2-LICENSE
+
+precinct 12.3.2 — "MIT"
+third-party-licenses/precinct@12.3.2-LICENSE
+
+prelude-ls 1.2.1 — "MIT"
+third-party-licenses/prelude-ls@1.2.1-LICENSE
+
+prettier 3.10.1 — "MIT"
+third-party-licenses/prettier@3.10.1-LICENSE
+
+prettier 3.9.9 — "MIT"
+third-party-licenses/prettier@3.9.9-LICENSE
+
+prettier-linter-helpers 1.0.1 — "MIT"
+third-party-licenses/prettier-linter-helpers@1.0.1-LICENSE.md
+
+pretty-ms 7.0.1 — "MIT"
+third-party-licenses/pretty-ms@7.0.1-license
+
+prismjs 1.30.0 — "MIT"
+third-party-licenses/prismjs@1.30.0-LICENSE
+
+punycode 2.3.1 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+qified 0.10.1 — "MIT"
+third-party-licenses/qified@0.10.1-LICENSE
+
+quansync 0.2.11 — "MIT"
+third-party-licenses/quansync@0.2.11-LICENSE.md
+
+queue-microtask 1.2.3 — "MIT"
+third-party-licenses/queue-microtask@1.2.3-LICENSE
+
+quote-js-string 0.1.0 — "MIT"
+third-party-licenses/quote-js-string@0.1.0-license
+
+quote-unquote 1.0.0 — "MIT"
+third-party-licenses/quote-unquote@1.0.0-LICENSE
+
+raphael 2.3.0 — "MIT"
+third-party-licenses/raphael@2.3.0-license.txt
+
+rc 1.2.8 — "(BSD-2-Clause OR MIT OR Apache-2.0)"
+third-party-licenses/rc@1.2.8-LICENSE.APACHE2
+third-party-licenses/rc@1.2.8-LICENSE.MIT
+third-party-licenses/rc@1.2.8-LICENSE.BSD
+
+readable-stream 3.6.2 — "MIT"
+third-party-licenses/readable-stream@3.6.2-LICENSE
+
+refa 0.12.1 — "MIT"
+third-party-licenses/refa@0.12.1-LICENSE
+
+regexp-ast-analysis 0.7.1 — "MIT"
+third-party-licenses/regexp-ast-analysis@0.7.1-LICENSE
+
+regjsparser 0.13.4 — "BSD-2-Clause"
+third-party-licenses/regjsparser@0.13.4-LICENSE.BSD
+
+require-from-string 2.0.2 — "MIT"
+third-party-licenses/require-from-string@2.0.2-license
+
+requirejs 2.3.8 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+requirejs-config-file 4.0.0 — "MIT"
+third-party-licenses/requirejs-config-file@4.0.0-LICENSE
+
+reserved-identifiers 1.2.0 — "MIT"
+third-party-licenses/reserved-identifiers@1.2.0-license
+
+resolve 1.22.14 — "MIT"
+third-party-licenses/resolve@1.22.14-LICENSE
+
+resolve-dependency-path 4.0.1 — "MIT"
+third-party-licenses/resolve-dependency-path@4.0.1-LICENSE
+
+resolve-from 4.0.0 — "MIT"
+third-party-licenses/resolve-from@4.0.0-license
+
+resolve-pkg-maps 1.0.0 — "MIT"
+third-party-licenses/resolve-pkg-maps@1.0.0-LICENSE
+
+restore-cursor 3.1.0 — "MIT"
+third-party-licenses/restore-cursor@3.1.0-license
+
+reusify 1.1.0 — "MIT"
+third-party-licenses/reusify@1.1.0-LICENSE
+
+robust-predicates 3.0.3 — "Unlicense"
+third-party-licenses/robust-predicates@3.0.3-LICENSE
+
+rolldown 1.2.19 — "MIT"
+third-party-licenses/rolldown@1.2.19-LICENSE
+
+roughjs 4.6.6 — "MIT"
+third-party-licenses/roughjs@4.6.6-LICENSE
+
+run-parallel 1.2.0 — "MIT"
+third-party-licenses/run-parallel@1.2.0-LICENSE
+
+rw 1.3.3 — "BSD-3-Clause"
+third-party-licenses/rw@1.3.3-LICENSE
+
+rxjs 7.8.2 — "Apache-2.0"
+third-party-licenses/rxjs@7.8.2-LICENSE.txt
+
+safe-buffer 5.2.1 — "MIT"
+third-party-licenses/safe-buffer@5.2.1-LICENSE
+
+safer-buffer 2.1.2 — "MIT"
+third-party-licenses/safer-buffer@2.1.2-LICENSE
+
+sass-lookup 6.1.2 — "MIT"
+third-party-licenses/sass-lookup@6.1.2-LICENSE
+
+saxes 6.0.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+scslre 0.3.0 — "MIT"
+third-party-licenses/scslre@0.3.0-LICENSE
+
+semver 7.8.6 — "ISC"
+third-party-licenses/semver@7.8.6-LICENSE
+
+shebang-command 2.0.0 — "MIT"
+third-party-licenses/shebang-command@2.0.0-license
+
+shebang-regex 3.0.0 — "MIT"
+third-party-licenses/shebang-regex@3.0.0-license
+
+signal-exit 3.0.7 — "ISC"
+third-party-licenses/signal-exit@3.0.7-LICENSE.txt
+
+signal-exit 4.1.0 — "ISC"
+third-party-licenses/signal-exit@4.1.0-LICENSE.txt
+
+sisteransi 2.0.0 — "MIT"
+third-party-licenses/sisteransi@2.0.0-license
+
+slash 5.1.0 — "MIT"
+third-party-licenses/slash@5.1.0-license
+
+slice-ansi 4.0.0 — "MIT"
+third-party-licenses/slice-ansi@4.0.0-license
+
+snabbdom 3.6.4 — "MIT"
+third-party-licenses/snabbdom@3.6.4-LICENSE
+
+snabbdom-to-html 7.1.0 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+snapad 0.0.1 — "Apache License v2"
+See package metadata; no separate top-level license file was installed.
+
+snapsvg 0.5.1 — "Apache-2.0"
+third-party-licenses/snapsvg@0.5.1-LICENSE
+third-party-licenses/snapsvg@0.5.1-NOTICE
+
+snapsvg-cjs 0.0.6 — "MIT"
+See package metadata; no separate top-level license file was installed.
+
+source-map 0.6.1 — "BSD-3-Clause"
+third-party-licenses/source-map@0.6.1-LICENSE
+
+source-map-js 1.2.2 — "BSD-3-Clause"
+third-party-licenses/source-map-js@1.2.2-LICENSE
+
+spdx-exceptions 2.5.0 — "CC-BY-3.0"
+See package metadata; no separate top-level license file was installed.
+
+spdx-expression-parse 5.0.0 — "MIT"
+third-party-licenses/spdx-expression-parse@5.0.0-LICENSE
+
+spdx-license-ids 3.0.24 — "CC0-1.0"
+See package metadata; no separate top-level license file was installed.
+
+std-env 4.3.0 — "MIT"
+third-party-licenses/std-env@4.3.0-LICENCE
+
+stream-to-array 2.3.0 — "MIT"
+third-party-licenses/stream-to-array@2.3.0-LICENSE
+
+string_decoder 1.3.0 — "MIT"
+third-party-licenses/string_decoder@1.3.0-LICENSE
+
+string-width 4.2.3 — "MIT"
+third-party-licenses/string-width@4.2.3-license
+
+string-width 7.2.0 — "MIT"
+third-party-licenses/string-width@7.2.0-license
+
+string-width 8.3.0 — "MIT"
+third-party-licenses/string-width@8.3.0-license
+
+stringify-object 3.3.0 — "BSD-2-Clause"
+third-party-licenses/stringify-object@3.3.0-LICENSE
+
+strip-ansi 6.0.1 — "MIT"
+third-party-licenses/strip-ansi@6.0.1-license
+
+strip-ansi 7.2.0 — "MIT"
+third-party-licenses/strip-ansi@7.2.0-license
+
+strip-bom 3.0.0 — "MIT"
+third-party-licenses/strip-bom@3.0.0-license
+
+strip-indent 4.1.1 — "MIT"
+third-party-licenses/strip-indent@4.1.1-license
+
+strip-json-comments 2.0.1 — "MIT"
+third-party-licenses/strip-json-comments@2.0.1-license
+
+stylelint 17.16.0 — "MIT"
+third-party-licenses/stylelint@17.16.0-LICENSE
+
+stylelint-config-recommended 18.0.0 — "MIT"
+third-party-licenses/stylelint-config-recommended@18.0.0-LICENSE
+
+stylelint-config-standard 40.0.0 — "MIT"
+third-party-licenses/stylelint-config-standard@40.0.0-LICENSE
+
+stylelint-order 8.1.3 — "MIT"
+third-party-licenses/stylelint-order@8.1.3-LICENSE.md
+
+stylis 4.4.0 — "MIT"
+third-party-licenses/stylis@4.4.0-LICENSE
+
+stylus-lookup 6.1.2 — "MIT"
+third-party-licenses/stylus-lookup@6.1.2-LICENSE
+
+super-regex 1.1.0 — "MIT"
+third-party-licenses/super-regex@1.1.0-license
+
+supports-color 10.2.2 — "MIT"
+third-party-licenses/supports-color@10.2.2-license
+
+supports-color 7.2.0 — "MIT"
+third-party-licenses/supports-color@7.2.0-license
+
+supports-hyperlinks 4.6.0 — "MIT"
+third-party-licenses/supports-hyperlinks@4.6.0-license
+
+supports-preserve-symlinks-flag 1.0.0 — "MIT"
+third-party-licenses/supports-preserve-symlinks-flag@1.0.0-LICENSE
+
+synckit 0.11.13 — "MIT"
+third-party-licenses/synckit@0.11.13-LICENSE
+
+table 6.10.1 — "BSD-3-Clause"
+third-party-licenses/table@6.10.1-LICENSE
+
+tapable 2.3.4 — "MIT"
+third-party-licenses/tapable@2.3.4-LICENSE
+
+time-span 5.1.0 — "MIT"
+third-party-licenses/time-span@5.1.0-license
+
+tinybench 6.2.3 — "MIT"
+third-party-licenses/tinybench@6.2.3-LICENSE
+
+tinyexec 1.3.1 — "MIT"
+third-party-licenses/tinyexec@1.3.1-LICENSE
+
+tinyglobby 0.2.17 — "MIT"
+third-party-licenses/tinyglobby@0.2.17-LICENSE
+
+tinypool 2.1.2 — "MIT"
+third-party-licenses/tinypool@2.1.2-LICENSE
+
+tinyrainbow 3.2.0 — "MIT"
+third-party-licenses/tinyrainbow@3.2.0-LICENCE
+
+tldts 7.5.2 — "MIT"
+third-party-licenses/tldts@7.5.2-LICENSE
+
+tldts-core 7.5.2 — "MIT"
+third-party-licenses/tldts-core@7.5.2-LICENSE
+
+to-regex-range 5.0.1 — "MIT"
+third-party-licenses/to-regex-range@5.0.1-LICENSE
+
+to-valid-identifier 1.0.0 — "MIT"
+third-party-licenses/to-valid-identifier@1.0.0-license
+
+toml-eslint-parser 1.0.3 — "MIT"
+third-party-licenses/toml-eslint-parser@1.0.3-LICENSE
+
+topojson-client 3.1.0 — "ISC"
+third-party-licenses/topojson-client@3.1.0-LICENSE
+
+tough-cookie 6.1.0 — "BSD-3-Clause"
+third-party-licenses/tough-cookie@6.1.0-LICENSE
+
+tr46 7.0.0 — "MIT"
+third-party-licenses/tr46@7.0.0-LICENSE.md
+
+ts-api-utils 2.5.0 — "MIT"
+third-party-licenses/ts-api-utils@2.5.0-LICENSE.md
+
+ts-dedent 2.3.0 — "MIT"
+third-party-licenses/ts-dedent@2.3.0-LICENSE
+
+ts-graphviz 2.1.6 — "MIT"
+third-party-licenses/ts-graphviz@2.1.6-LICENSE
+
+tsconfig-paths 4.2.0 — "MIT"
+third-party-licenses/tsconfig-paths@4.2.0-LICENSE
+
+tslib 2.8.1 — "0BSD"
+third-party-licenses/tslib@2.8.1-LICENSE.txt
+
+tslib 2.9.1 — "0BSD"
+third-party-licenses/tslib@2.9.1-LICENSE.txt
+
+turndown 7.2.5 — "MIT"
+third-party-licenses/turndown@7.2.5-LICENSE
+
+type-check 0.4.0 — "MIT"
+third-party-licenses/type-check@0.4.0-LICENSE
+
+type-fest 4.41.0 — "(MIT OR CC0-1.0)"
+See package metadata; no separate top-level license file was installed.
+
+typescript 5.9.3 — "Apache-2.0"
+third-party-licenses/typescript@5.9.3-LICENSE.txt
+
+typescript 6.0.3 — "Apache-2.0"
+third-party-licenses/typescript@6.0.3-LICENSE.txt
+
+ufo 1.6.4 — "MIT"
+third-party-licenses/ufo@1.6.4-LICENSE
+
+underscore 1.13.8 — "MIT"
+third-party-licenses/underscore@1.13.8-LICENSE
+
+undici 8.12.4 — "MIT"
+third-party-licenses/undici@8.12.4-LICENSE
+
+undici-types 8.9.0 — "MIT"
+third-party-licenses/undici-types@8.9.0-LICENSE
+
+unicorn-magic 0.4.1 — "MIT"
+third-party-licenses/unicorn-magic@0.4.1-license
+
+unicount 1.1.0 — "ISC"
+See package metadata; no separate top-level license file was installed.
+
+unist-util-is 6.0.1 — "MIT"
+third-party-licenses/unist-util-is@6.0.1-license
+
+unist-util-remove-position 5.0.0 — "MIT"
+third-party-licenses/unist-util-remove-position@5.0.0-license
+
+unist-util-stringify-position 4.0.0 — "MIT"
+third-party-licenses/unist-util-stringify-position@4.0.0-license
+
+unist-util-visit 5.2.0 — "MIT"
+third-party-licenses/unist-util-visit@5.2.0-license
+
+unist-util-visit-parents 6.1.0 — "MIT"
+third-party-licenses/unist-util-visit-parents@6.1.0-license
+
+unplugin 2.3.11 — "MIT"
+third-party-licenses/unplugin@2.3.11-LICENSE
+
+unplugin-dts 1.1.2 — "MIT"
+third-party-licenses/unplugin-dts@1.1.2-LICENSE
+
+update-browserslist-db 1.3.4 — "MIT"
+third-party-licenses/update-browserslist-db@1.3.4-LICENSE
+
+uri-js 4.4.1 — "BSD-2-Clause"
+third-party-licenses/uri-js@4.4.1-LICENSE
+
+util-deprecate 1.0.2 — "MIT"
+third-party-licenses/util-deprecate@1.0.2-LICENSE
+
+vega 6.4.0 — "BSD-3-Clause"
+third-party-licenses/vega@6.4.0-LICENSE
+
+vega-canvas 2.0.0 — "BSD-3-Clause"
+third-party-licenses/vega-canvas@2.0.0-LICENSE
+
+vega-crossfilter 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-crossfilter@5.1.3-LICENSE
+
+vega-dataflow 6.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-dataflow@6.1.3-LICENSE
+
+vega-embed 7.3.0 — "BSD-3-Clause"
+third-party-licenses/vega-embed@7.3.0-LICENSE
+
+vega-encode 5.2.2 — "BSD-3-Clause"
+third-party-licenses/vega-encode@5.2.2-LICENSE
+
+vega-event-selector 4.0.0 — "BSD-3-Clause"
+third-party-licenses/vega-event-selector@4.0.0-LICENSE
+
+vega-expression 6.2.2 — "BSD-3-Clause"
+third-party-licenses/vega-expression@6.2.2-LICENSE
+
+vega-force 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-force@5.1.3-LICENSE
+
+vega-format 2.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-format@2.1.3-LICENSE
+
+vega-functions 6.2.0 — "BSD-3-Clause"
+third-party-licenses/vega-functions@6.2.0-LICENSE
+
+vega-geo 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-geo@5.1.3-LICENSE
+
+vega-hierarchy 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-hierarchy@5.1.3-LICENSE
+
+vega-interpreter 2.3.2 — "BSD-3-Clause"
+third-party-licenses/vega-interpreter@2.3.2-LICENSE
+
+vega-label 2.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-label@2.1.3-LICENSE
+
+vega-lite 6.5.0 — "BSD-3-Clause"
+third-party-licenses/vega-lite@6.5.0-LICENSE
+
+vega-loader 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-loader@5.1.3-LICENSE
+
+vega-parser 7.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-parser@7.1.3-LICENSE
+
+vega-projection 2.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-projection@2.1.3-LICENSE
+
+vega-regression 2.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-regression@2.1.3-LICENSE
+
+vega-runtime 7.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-runtime@7.1.3-LICENSE
+
+vega-scale 8.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-scale@8.1.3-LICENSE
+
+vega-scenegraph 5.3.0 — "BSD-3-Clause"
+third-party-licenses/vega-scenegraph@5.3.0-LICENSE
+
+vega-schema-url-parser 3.0.2 — "BSD-3-Clause"
+third-party-licenses/vega-schema-url-parser@3.0.2-LICENSE
+
+vega-selections 6.1.5 — "BSD-3-Clause"
+third-party-licenses/vega-selections@6.1.5-LICENSE
+
+vega-statistics 2.0.0 — "BSD-3-Clause"
+third-party-licenses/vega-statistics@2.0.0-LICENSE
+
+vega-themes 3.0.0 — "BSD-3-Clause"
+third-party-licenses/vega-themes@3.0.0-LICENSE
+
+vega-time 3.3.0 — "BSD-3-Clause"
+third-party-licenses/vega-time@3.3.0-LICENSE
+
+vega-tooltip 1.1.0 — "BSD-3-Clause"
+third-party-licenses/vega-tooltip@1.1.0-LICENSE
+
+vega-transforms 5.2.2 — "BSD-3-Clause"
+third-party-licenses/vega-transforms@5.2.2-LICENSE
+
+vega-typings 2.3.0 — "BSD-3-Clause"
+third-party-licenses/vega-typings@2.3.0-LICENSE
+
+vega-util 2.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-util@2.1.3-LICENSE
+
+vega-view 6.2.0 — "BSD-3-Clause"
+third-party-licenses/vega-view@6.2.0-LICENSE
+
+vega-view-transforms 5.2.2 — "BSD-3-Clause"
+third-party-licenses/vega-view-transforms@5.2.2-LICENSE
+
+vega-voronoi 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-voronoi@5.1.3-LICENSE
+
+vega-wordcloud 5.1.3 — "BSD-3-Clause"
+third-party-licenses/vega-wordcloud@5.1.3-LICENSE
+
+verkit 0.3.2 — "MIT"
+third-party-licenses/verkit@0.3.2-LICENSE
+
+verkit 0.4.1 — "MIT"
+third-party-licenses/verkit@0.4.1-LICENSE
+
+vite 8.3.4 — "MIT"
+third-party-licenses/vite@8.3.4-LICENSE.md
+
+vite-plugin-dts 5.1.2 — "MIT"
+third-party-licenses/vite-plugin-dts@5.1.2-LICENSE
+
+vitest 5.1.0 — "MIT"
+third-party-licenses/vitest@5.1.0-LICENSE.md
+
+vscode-uri 3.2.0 — "MIT"
+third-party-licenses/vscode-uri@3.2.0-LICENSE.md
+
+vue 3.5.43 — "MIT"
+third-party-licenses/vue@3.5.43-LICENSE
+
+vue-eslint-parser 10.4.2 — "MIT"
+third-party-licenses/vue-eslint-parser@10.4.2-LICENSE
+
+vue-tsc 3.3.11 — "MIT"
+third-party-licenses/vue-tsc@3.3.11-LICENSE
+
+w3c-xmlserializer 6.0.0 — "MIT"
+third-party-licenses/w3c-xmlserializer@6.0.0-LICENSE.md
+
+walkdir 0.4.1 — "MIT"
+third-party-licenses/walkdir@0.4.1-license
+
+wcwidth 1.0.1 — "MIT"
+third-party-licenses/wcwidth@1.0.1-LICENSE
+
+web-worker 1.5.0 — "Apache-2.0"
+third-party-licenses/web-worker@1.5.0-LICENSE
+
+webfontloader 1.6.28 — "Apache-2.0"
+third-party-licenses/webfontloader@1.6.28-LICENSE
+
+webidl-conversions 8.0.1 — "BSD-2-Clause"
+third-party-licenses/webidl-conversions@8.0.1-LICENSE.md
+
+webpack-virtual-modules 0.6.2 — "MIT"
+third-party-licenses/webpack-virtual-modules@0.6.2-LICENSE
+
+whatwg-mimetype 3.0.0 — "MIT"
+third-party-licenses/whatwg-mimetype@3.0.0-LICENSE.txt
+
+whatwg-mimetype 5.0.0 — "MIT"
+third-party-licenses/whatwg-mimetype@5.0.0-LICENSE.txt
+
+whatwg-url 17.3.0 — "MIT"
+third-party-licenses/whatwg-url@17.3.0-LICENSE.txt
+
+which 1.3.1 — "ISC"
+third-party-licenses/which@1.3.1-LICENSE
+
+which 2.0.2 — "ISC"
+third-party-licenses/which@2.0.2-LICENSE
+
+why-is-node-running 3.2.1 — "MIT"
+third-party-licenses/why-is-node-running@3.2.1-LICENSE
+
+word-wrap 1.2.5 — "MIT"
+third-party-licenses/word-wrap@1.2.5-LICENSE
+
+wrap-ansi 9.0.2 — "MIT"
+third-party-licenses/wrap-ansi@9.0.2-license
+
+write-file-atomic 7.0.1 — "ISC"
+third-party-licenses/write-file-atomic@7.0.1-LICENSE.md
+
+ws 8.23.0 — "MIT"
+third-party-licenses/ws@8.23.0-LICENSE
+
+xml-name-validator 5.0.0 — "Apache-2.0"
+third-party-licenses/xml-name-validator@5.0.0-LICENSE.txt
+
+xmlchars 2.2.0 — "MIT"
+third-party-licenses/xmlchars@2.2.0-LICENSE
+
+y18n 5.0.8 — "ISC"
+third-party-licenses/y18n@5.0.8-LICENSE
+
+yaml 2.9.1 — "ISC"
+third-party-licenses/yaml@2.9.1-LICENSE
+
+yaml-eslint-parser 2.1.0 — "MIT"
+third-party-licenses/yaml-eslint-parser@2.1.0-LICENSE
+
+yargs 18.2.0 — "MIT"
+third-party-licenses/yargs@18.2.0-LICENSE
+
+yargs-parser 22.0.0 — "ISC"
+third-party-licenses/yargs-parser@22.0.0-LICENSE.txt
+
+yocto-queue 0.1.0 — "MIT"
+third-party-licenses/yocto-queue@0.1.0-license
+
+zwitch 2.0.4 — "MIT"
+third-party-licenses/zwitch@2.0.4-license

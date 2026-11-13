@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["bun"],
+    "lib": ["ES2023", "DOM"],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "*.ts",
+    "tests/**/*.ts",
+    "tools/**/*.ts",
+    "desktop/services/**/*.ts",
+    "app/src/filesystem-access.d.ts"
+  ]
+}

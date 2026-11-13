@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/@dopame/acde-api/config.schema.json",
+  "type": "desktop",
+  "id": "marktext-workspace",
+  "label": "MarkText 协作桌面",
+  "entry": "index.html",
+  "services": { "marktext-agent": "services/collaboration.ts" },
+  "apps": []
+}

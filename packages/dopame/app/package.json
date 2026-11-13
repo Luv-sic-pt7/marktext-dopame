@@ -1,0 +1,38 @@
+{
+  "name": "marktext-dopame-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "scripts": {
+    "dev": "acde dev",
+    "build": "vite build",
+    "check": "acde check",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "3.5.43",
+    "pinia": "4.0.3",
+    "codemirror": "5.65.21",
+    "dompurify": "3.4.17",
+    "marked": "18.1.0",
+    "fast-diff": "1.3.0",
+    "@muyajs/core": "file:../../muya"
+  },
+  "devDependencies": {
+    "@dopame/acde-api": "https://calbin-1318886512.cos.ap-beijing.myqcloud.com/pkgs/acdert/0.0.9/acde-api-0.0.9.tar.gz",
+    "vite": "8.3.4",
+    "@vitejs/plugin-vue": "6.0.9",
+    "typescript": "6.0.3",
+    "vue-tsc": "3.3.11",
+    "@types/codemirror": "5.60.18"
+  },
+  "workspaces": [],
+  "overrides": {
+    "dompurify": "3.4.17",
+    "happy-dom": "21.0.4",
+    "tinypool": "2.1.2",
+    "katex": "0.18.2",
+    "minimatch": "11.0.1"
+  }
+}

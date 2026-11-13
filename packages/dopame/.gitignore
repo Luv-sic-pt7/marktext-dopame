@@ -1,0 +1,9 @@
+node_modules/
+**/node_modules/
+.acde/
+**/.acde/
+**/dist/
+desktop/public/runtime/
+.taste-skill/
+*.log
+.preview-dist/

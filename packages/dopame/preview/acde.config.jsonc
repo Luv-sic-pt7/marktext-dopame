@@ -1,0 +1,9 @@
+{
+  "$schema": "../app/node_modules/@dopame/acde-api/config.schema.json",
+  "type": "app",
+  "id": "marktext-editor-preview",
+  "label": "编辑预览 · 模拟文件",
+  "framework": "vite",
+  "entry": "index.html",
+  "capabilities": {}
+}
