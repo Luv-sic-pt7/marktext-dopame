@@ -2,7 +2,7 @@ import { cp, mkdir, chmod, readdir } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, resolve } from 'node:path'
-import { acdeBinary, command, portRoot, evidenceRoot } from './prepare-native'
+import { acdeBinary, command, portRoot } from './prepare-native'
 
 const output = resolve(
   process.argv[2] ?? join(portRoot, '../../../交付/MarkText-Dopame-MVP-0.1.0-' + Date.now())
@@ -92,7 +92,7 @@ await Bun.write(
   )
 )
 await command(process.execPath, ['tools/generate-contract.ts', join(output, 'schema')])
-for (const name of ['README.md', 'docs', 'requirements.json', 'scripts', 'samples'])
+for (const name of ['README.md', 'docs', 'scripts', 'samples'])
   if (existsSync(join(portRoot, name)))
     await cp(join(portRoot, name), join(output, name), { recursive: true })
 await cp(resolve(portRoot, '../../LICENSE'), join(output, 'LICENSE'))
@@ -110,24 +110,10 @@ if (existsSync(join(portRoot, 'third-party-licenses')))
   await cp(join(portRoot, 'third-party-licenses'), join(output, 'third-party-licenses'), {
     recursive: true
   })
-await mkdir(join(output, 'evidence'), { recursive: true })
-for (const name of [
-  'native-run-latest.json',
-  'native-workflow-v11.json',
-  'native-layout.json',
-  'dependency-audit-core.json',
-  'dependency-audit-app.json',
-  'release-verification.json',
-  'core-check-summary.json',
-  'installation-check.json'
-]) {
-  if (existsSync(join(evidenceRoot, name)))
-    await cp(join(evidenceRoot, name), join(output, 'evidence', name))
-}
-if (existsSync(join(evidenceRoot, 'native-run-latest.json'))) {
-  const run = JSON.parse(readFileSync(join(evidenceRoot, 'native-run-latest.json'), 'utf8'))
-  if (typeof run.log === 'string' && /^native-run-\d+\.log$/.test(run.log))
-    await cp(join(evidenceRoot, run.log), join(output, 'evidence', run.log))
+const publicAcceptance = join(portRoot, 'docs/acceptance-public.md')
+if (existsSync(publicAcceptance)) {
+  await mkdir(join(output, 'evidence'), { recursive: true })
+  await cp(publicAcceptance, join(output, 'evidence/acceptance-public.md'))
 }
 for (const name of ['run.sh', 'install.sh', 'uninstall.sh'])
   await chmod(join(output, 'scripts', name), 0o755)

@@ -1,3 +1,5 @@
+> **Dopame OS · MVP 0.1.0：** 本 fork 的移植源码、构建和运行入口见 [packages/dopame](packages/dopame/README.md)。
+
 <p align="center"><img src="docs/assets/logo-small.png" alt="MarkText" width="100" height="100"></p>
 
 <h1 align="center">MarkText</h1>

@@ -7,3 +7,5 @@ desktop/public/runtime/
 .taste-skill/
 *.log
 .preview-dist/
+docs/progress.json
+requirements.json

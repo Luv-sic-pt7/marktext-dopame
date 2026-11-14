@@ -17,4 +17,6 @@ MarkText for Dopame OS 采用“移植＋改造”路线：复用 MarkText v0.23
 
 原文依据为用户提供的 ReturnAI 赛题 HTML 与 MVP方案.md v1.1。当前本机环境和官方真机分开记录，官方真机测试按用户要求后置。M3/M4 的真实 Agent 会话未以确定性进程替代。
 
-源码保持本地交付，未发布到远程。当前机器未配置完整 Git 作者信息，新增提交使用匿名代理身份 Codex <codex@localhost>，不改写用户的全局 Git 身份。
+MVP 0.1.0 的公开源码以 `6bcca964e73b3fe1f5d981cea9f3b79f82968ebe` 为基线，上游为 `18fdc1eddc7d36d9b205180d058982f71f4f6373`，保留完整 Git 历史与原许可。公开整理使用后续提交，原始提交内容仍可从 Git 历史追溯。0.2.0 为单独版本，不并入本次 0.1.0 发布。
+
+远端发布流程：将 0.1.0 基线及公开整理提交推送到公开 fork `Luv-sic-pt7/marktext-dopame` 的 `dopame-mvp-0.1.0` 分支，运行包单独通过 Release 发布。本次采用 `6bcca964e73b3fe1f5d981cea9f3b79f82968ebe` 已构建的组件，配合公开整理文档重打包；498 个组件运行文件与原 0.1.0 交付逐字节一致。公开整理未更改运行源码；今后可从本分支运行 `tools/build-release.ts` 重新构建，并核对版本和 `release-manifest.json`。GitHub 自动生成的 Source code 归档用于源码获取；运行包包含应用和提供 `marktext-agent` 的协作桌面，解压后在包目录执行 `sh scripts/run.sh`。公开验证范围见 [公开验收摘要](acceptance-public.md)，原始运行证据与日志不自动入包。
