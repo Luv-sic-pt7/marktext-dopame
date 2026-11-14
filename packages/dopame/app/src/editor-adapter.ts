@@ -36,6 +36,7 @@ import {
   type ParagraphLineChange
 } from './paragraph-commands'
 import { AccessibleCodeBlockLanguageSelector, labelCodeBlocks } from './code-block-ui'
+import { AgentError, boundedText, LIMITS } from '../../protocol'
 
 class AccessibleQuickInsertMenu extends ParagraphQuickInsertMenu {
   protected override activeEleScrollIntoView(element: HTMLElement) {
@@ -92,6 +93,7 @@ export class EditorAdapter implements EditorBridge {
   private loading = false
   private nativeCaret: NativeCaret | null = null
   private richBaseline = ''
+  private richLoaded = false
   private imageScope = ''
   private searchKey = ''
   private searchIndex = -1
@@ -291,6 +293,21 @@ export class EditorAdapter implements EditorBridge {
     this.source.on('change', () => {
       if (!this.loading && this.currentMode === 'source' && !controller.composing) this.commit()
     })
+    this.source.on('beforeChange', (_editor, change) => {
+      if (this.loading || this.currentMode !== 'source') return
+      const previous = this.source.getValue()
+      const from = this.source.indexFromPos(change.from)
+      const to = this.source.indexFromPos(change.to)
+      const inserted = change.text.join('\n')
+      // Each UTF-16 unit occupies at most three UTF-8 bytes. Ordinary edits need no extra scan.
+      if (3 * (previous.length - (to - from) + inserted.length) <= LIMITS.text) return
+      try {
+        boundedText(previous.slice(0, from) + inserted + previous.slice(to), '文档')
+      } catch (error) {
+        change.cancel()
+        controller.error(error)
+      }
+    })
     this.muya.on('selection-change', () => {
       this.onContextChange()
       this.nativeCaret?.refresh()
@@ -326,13 +343,36 @@ export class EditorAdapter implements EditorBridge {
       this.currentMode === 'source'
         ? this.source.getValue()
         : this.canonical(this.muya.getMarkdown())
-    this.controller.edit(this.currentId, text, this.capture())
+    try {
+      this.controller.edit(this.currentId, text, this.capture())
+    } catch (error) {
+      if (!(error instanceof AgentError) || error.code !== 'INVALID_ARGUMENT') throw error
+      // Rich input and composition commit after mutating the engine; restore its last valid state.
+      this.loading = true
+      try {
+        if (this.currentMode === 'source') {
+          this.source.setValue(d.text)
+          if (d.history.source) this.source.setHistory(d.history.source)
+          if (d.history.cursor?.anchor && d.history.cursor?.focus)
+            this.source.setSelection(d.history.cursor.anchor, d.history.cursor.focus)
+        } else {
+          this.loadRich(d)
+          this.setCursor(d.history.cursor)
+        }
+      } finally {
+        this.loading = false
+      }
+      this.focus()
+      this.controller.error(error)
+    }
   }
   capture(): EngineState {
+    const history = this.controller.docs.get(this.currentId)?.history ?? {}
+    const readRich = this.currentMode !== 'source' && this.richLoaded
     return {
-      muya: this.muya.getHistory(),
+      muya: readRich ? this.muya.getHistory() : history.muya,
       source: this.source.getHistory(),
-      muyaText: this.canonical(this.muya.getMarkdown()),
+      muyaText: readRich ? this.canonical(this.muya.getMarkdown()) : history.muyaText,
       sourceText: this.source.getValue(),
       cursor:
         this.currentMode === 'source'
@@ -359,6 +399,27 @@ export class EditorAdapter implements EditorBridge {
       this.muya.setHistory(history)
     }
   }
+  private loadRich(d: Session) {
+    if (d.externalSteps.length) {
+      const first = d.externalSteps[0]
+      const baseline = first.history.muyaText ?? first.before
+      this.muya.setContent(baseline)
+      if (first.history.muya) this.muya.setHistory(first.history.muya)
+      let content = baseline
+      for (const step of d.externalSteps) {
+        if (content !== step.before) this.muya.replaceContent(step.before)
+        this.muya.replaceContent(step.after)
+        content = step.after
+      }
+      if (content !== d.text) this.muya.replaceContent(d.text)
+    } else {
+      this.muya.setContent(d.history.muyaText ?? d.text)
+      if (d.history.muya) this.muya.setHistory(d.history.muya)
+      if (d.history.muyaText !== undefined && d.history.muyaText !== d.text)
+        this.muya.replaceContent(d.text)
+    }
+    this.richLoaded = true
+  }
   load(d: Session) {
     this.clearSearch(false)
     this.loading = true
@@ -367,6 +428,11 @@ export class EditorAdapter implements EditorBridge {
         oldMode = this.currentMode
       this.currentId = d.id
       this.currentMode = d.mode
+      const reset = same && d.history.muyaText === undefined && !d.externalSteps.length
+      if (reset) this.richLoaded = false
+      if (d.mode === 'source' && d.history.muyaText === undefined && !d.externalSteps.length)
+        d.history.muyaText = d.text
+      this.muya.setReadOnly(d.mode !== 'rich' || d.readOnly)
       const imageScope =
         d.id + ':' + JSON.stringify(d.importSource?.resource ?? d.resource) + ':' + d.mode
       if (imageScope !== this.imageScope) {
@@ -383,40 +449,37 @@ export class EditorAdapter implements EditorBridge {
             ),
           d.mode !== 'source'
         )
-        if (same) this.refreshImages()
+        if (same && d.mode !== 'source' && this.richLoaded) this.refreshImages()
       }
       if (!same) {
-        if (d.externalSteps.length) {
-          const first = d.externalSteps[0]
-          this.muya.setContent(first.before)
-          if (first.history.muya) this.muya.setHistory(first.history.muya)
-          for (const step of d.externalSteps) this.muya.replaceContent(step.after)
-        } else {
-          this.muya.setContent(d.history.muyaText ?? d.text)
-          if (d.history.muya) this.muya.setHistory(d.history.muya)
-          if (d.history.muyaText && d.history.muyaText !== d.text) this.muya.replaceContent(d.text)
-        }
+        this.richLoaded = false
+        if (d.mode !== 'source') this.loadRich(d)
         let cm = this.sourceDocs.get(d.id)
         if (!cm) {
           const first = d.externalSteps[0]
-          cm = new CodeMirror.Doc(
-            first?.history.sourceText ?? first?.before ?? d.history.sourceText ?? d.text,
-            'gfm'
-          )
-          const history = first?.history.source ?? d.history.source
+          const checkpoint =
+            d.history.sourceText === d.text ? d.history : (first?.history ?? d.history)
+          cm = new CodeMirror.Doc(checkpoint.sourceText ?? first?.before ?? d.text, 'gfm')
+          const history = checkpoint.source
           if (history) cm.setHistory(history)
           this.sourceDocs.set(d.id, cm)
         }
         this.source.swapDoc(cm)
         if (d.externalSteps.length && this.source.getValue() !== d.text) {
           this.replaceSource(d.externalSteps[0].before)
-          for (const step of d.externalSteps) this.replaceSource(step.after)
-        } else this.replaceSource(d.text)
-        this.setCursor(d.history.cursor)
+          for (const step of d.externalSteps) {
+            this.replaceSource(step.before)
+            this.replaceSource(step.after)
+          }
+        }
+        this.replaceSource(d.text)
+        if (d.mode !== 'source') this.setCursor(d.history.cursor)
         if (d.history.cursor?.anchor && d.history.cursor?.focus)
           this.source.setSelection(d.history.cursor.anchor, d.history.cursor.focus)
       } else if (oldMode === 'source' && d.mode !== 'source') {
-        if (this.canonical(this.muya.getMarkdown()) !== d.text) this.muya.replaceContent(d.text)
+        if (!this.richLoaded || d.externalSteps.length) this.loadRich(d)
+        else if (this.canonical(this.muya.getMarkdown()) !== d.text)
+          this.muya.replaceContent(d.text)
         this.setCursor({
           anchor: this.source.getCursor('anchor'),
           focus: this.source.getCursor('head')
@@ -425,23 +488,25 @@ export class EditorAdapter implements EditorBridge {
         const cursor = this.muya.getCursorOffset()
         this.replaceSource(d.text)
         if (cursor?.anchor && cursor.focus) this.source.setSelection(cursor.anchor, cursor.focus)
-      } else if (d.mode === 'source' && this.source.getValue() !== d.text) {
+      } else if (d.mode === 'source') {
         this.replaceSource(d.text)
+        if (reset) this.source.clearHistory()
       } else if (
-        d.mode !== 'source' &&
-        this.canonical(this.muya.getMarkdown()) !== d.text &&
-        d.text !== this.richBaseline
+        reset ||
+        (this.canonical(this.muya.getMarkdown()) !== d.text && d.text !== this.richBaseline)
       ) {
-        this.muya.setContent(d.text)
-        if (d.history.muya) this.muya.setHistory(d.history.muya)
+        this.loadRich(d)
       }
-      this.muya.setReadOnly(d.mode === 'preview' || d.readOnly)
       this.muya.domNode.setAttribute('aria-label', d.mode === 'preview' ? '阅读预览' : '富文本正文')
       this.source.setOption('readOnly', d.readOnly ? 'nocursor' : false)
       this.richHost.hidden = d.mode === 'source'
       this.sourceHost.hidden = d.mode !== 'source'
-      labelCodeBlocks(this.muya)
-      this.richBaseline = this.canonical(this.muya.getMarkdown())
+      if (d.mode !== 'source') {
+        labelCodeBlocks(this.muya)
+        this.richBaseline = this.canonical(this.muya.getMarkdown())
+        d.externalSteps = []
+      }
+      d.history = this.capture()
       requestAnimationFrame(() => {
         if (d.mode === 'source') this.source.refresh()
         this.nativeCaret?.refresh()
@@ -485,9 +550,11 @@ export class EditorAdapter implements EditorBridge {
     if (documentId !== this.currentId) return null
     this.loading = true
     try {
-      this.muya.replaceContent(text)
+      if (this.currentMode !== 'source') {
+        this.muya.replaceContent(text)
+        this.richBaseline = this.canonical(this.muya.getMarkdown())
+      }
       this.replaceSource(text)
-      this.richBaseline = this.canonical(this.muya.getMarkdown())
       return this.capture()
     } finally {
       this.loading = false

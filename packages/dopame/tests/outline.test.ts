@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { outline } from '../protocol'
+import { canReuseOutline, outline } from '../protocol'
 
 test('outline includes every ATX level, indentation and duplicate Unicode titles', () => {
   const lines = [
@@ -156,4 +156,36 @@ test('unclosed front matter does not hide subsequent headings', () => {
 test('empty documents produce no outline', () => {
   expect(outline('')).toEqual([])
   expect(outline('普通正文\n\n    # 代码')).toEqual([])
+})
+
+test('plain tail append reuse agrees with full Markdown analysis across block contexts', () => {
+  for (const source of [
+    '',
+    '# 标题\n\n正文',
+    '# 标题\r\n\r\n正文',
+    '标题\n===\n\n正文',
+    '> # 引用\n\n正文',
+    '- # 列表\n\n正文',
+    '```md\n# 隐藏标题\ncode',
+    '<div>\n# HTML 中\ntext',
+    '<!--\n# 注释中\ntext',
+    '# [引用][r]\n\n正文',
+    '---\ntitle: 未闭合\n# 正文标题\ntext',
+    '{\n# 未闭合\ntext',
+    '| 表头 |\n| --- |\ncell',
+    '# 标题\n\n'
+  ])
+    for (const suffix of ['文字 😀', 'abc', '</div>', '-->', '---', '}', '`', '  ']) {
+      const next = source + suffix
+      if (canReuseOutline(source, next)) expect(outline(next)).toEqual(outline(source))
+    }
+  for (const [before, after] of [
+    ['# 标题', '# 标题后缀'],
+    ['[r]: /url "\n# 标题\ntext"', '[r]: /url "\n# 标题\ntext"x'],
+    ['标题\n--', '标题\n---'],
+    ['# 标题\n正文', '# 标题\n正文\n## 新标题'],
+    ['正文', '其他正文'],
+    ['    code', '    code more']
+  ])
+    expect(canReuseOutline(before, after)).toBe(false)
 })

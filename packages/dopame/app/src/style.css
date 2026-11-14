@@ -220,6 +220,15 @@ input {
   margin-top: auto;
   padding-top: 32px;
 }
+.file-open-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.file-open-row > button {
+  flex: 1;
+  min-width: 0;
+}
 .sidebar-bottom button {
   display: flex;
   justify-content: space-between;

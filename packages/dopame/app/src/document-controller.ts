@@ -72,6 +72,8 @@ export class DocumentController {
   bridge: EditorBridge | null = null
   listeners = new Set<() => void>()
   private queues = new Map<string, Promise<any>>()
+  private dirtyResults = new WeakMap<Session, { text: string; baseline?: string; dirty: boolean }>()
+  private dirtyBaseline?: { ownerId: string; encoded: string; text: string }
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
   private metadataTail: Promise<any> = Promise.resolve()
   private workerToken = ''
@@ -119,10 +121,27 @@ export class DocumentController {
     }))
   }
   dirty(d: Session) {
-    return (
-      d.revision !== d.savedRevision &&
-      (!d.stamp || decodeFile(fromBase64(d.stamp.base64)).text !== d.text)
-    )
+    if (d.revision === d.savedRevision) {
+      this.dirtyResults.delete(d)
+      if (this.dirtyBaseline?.ownerId === d.id) this.dirtyBaseline = undefined
+      return false
+    }
+    const baseline = d.stamp?.base64
+    const cached = this.dirtyResults.get(d)
+    if (cached?.text === d.text && cached.baseline === baseline) return cached.dirty
+    let dirty = true
+    if (baseline !== undefined) {
+      if (this.dirtyBaseline?.encoded !== baseline)
+        this.dirtyBaseline = {
+          ownerId: d.id,
+          encoded: baseline,
+          text: decodeFile(fromBase64(baseline)).text
+        }
+      else this.dirtyBaseline.ownerId = d.id
+      dirty = this.dirtyBaseline.text !== d.text
+    }
+    this.dirtyResults.set(d, { text: d.text, baseline, dirty })
+    return dirty
   }
   message(kind: string, message: string) {
     this.notice = { kind, message }
@@ -263,7 +282,7 @@ export class DocumentController {
     await this.flush(d.id)
     return d
   }
-  async import(read: ReadDocument, inPlace = false) {
+  async import(read: ReadDocument, inPlace = false, mode?: Mode) {
     const target = read.resource
     const same =
       inPlace &&
@@ -279,10 +298,12 @@ export class DocumentController {
       })
     if (same) {
       await this.activate(same.id)
+      if (mode) await this.mode(mode)
       return same
     }
     const d = await this.create(read.title, read.text, false)
     Object.assign(d, {
+      ...(mode ? { mode } : {}),
       format: read.format,
       resource: inPlace ? read.resource : null,
       stamp: inPlace ? read.stamp : null,
@@ -297,7 +318,7 @@ export class DocumentController {
       this.message('info', '已导入并保存到私有笔记。后续保存写入工作文档，导出可选择新的 .md 文件')
     return d
   }
-  async openFiles(inPlace = false) {
+  async openFiles(inPlace = false, mode?: Mode) {
     await this.ready
     const failures: string[] = []
     const report = (error: unknown, name: string) =>
@@ -308,7 +329,7 @@ export class DocumentController {
     const docs = await this.files.openFiles(report, resources)
     for (const d of docs) {
       try {
-        await this.import(d, inPlace)
+        await this.import(d, inPlace, mode)
       } catch (error) {
         report(error, d.title)
       }
@@ -344,7 +365,7 @@ export class DocumentController {
     if (text === d.text) return
     d.text = text
     d.revision++
-    d.externalSteps = []
+    if (d.mode !== 'source') d.externalSteps = []
     if (this.notice?.kind === 'success') this.notice = null
     this.emit()
     this.schedule(d)
@@ -562,11 +583,15 @@ export class DocumentController {
       const before = copy(d)
       d.text = proposal.after
       d.revision++
-      d.externalSteps.push({ before: before.text, after: d.text, history: before.history })
+      d.externalSteps.push({
+        before: before.text,
+        after: d.text,
+        history: d.externalSteps.length ? {} : before.history
+      })
       const history = this.bridge?.replaceExternal(d.id, d.text)
       if (history) {
         d.history = history
-        d.externalSteps = []
+        if (d.mode !== 'source') d.externalSteps = []
       }
       this.emit()
       await this.persist(d)
@@ -1025,7 +1050,7 @@ export class DocumentController {
           next.externalSteps.push({
             before: base.text,
             after: next.text,
-            history: copy(base.history)
+            history: next.externalSteps.length ? {} : copy(base.history)
           })
         boundedText(next.text, '任务结果')
         const committedSnapshot = snapshot(next)
@@ -1083,7 +1108,7 @@ export class DocumentController {
           const history = this.bridge?.replaceExternal(next.id, next.text)
           if (history) {
             next.history = history
-            next.externalSteps = []
+            if (next.mode !== 'source') next.externalSteps = []
           }
           this.emit()
         }

@@ -394,6 +394,15 @@ export function patchText(source: string, changes: Edit[]): string {
   return boundedText(result, '修改结果')
 }
 /** Top-level document headings; ranges include Markdown markers and exclude the final line ending. */
+// A tail without ASCII syntax cannot close a multiline title or change earlier heading ranges.
+export function canReuseOutline(previous: string, next: string) {
+  if (next.length <= previous.length || !next.startsWith(previous)) return false
+  if (/[\r\n]/.test(next.slice(previous.length))) return false
+  const start = Math.max(previous.lastIndexOf('\n'), previous.lastIndexOf('\r')) + 1
+  const tail = next.slice(start)
+  return /^ {0,3}\p{L}/u.test(tail.slice(0, 8)) && /^[A-Za-z0-9 \t\u0080-\u{10FFFF}]*$/u.test(tail)
+}
+
 export function outline(text: string) {
   const result: { level: number; text: string; from: number; to: number }[] = []
   const crlfEnds: number[] = []

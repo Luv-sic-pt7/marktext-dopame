@@ -39,13 +39,16 @@ export function decodeFile(data: Uint8Array): { text: string; format: Format } {
     throw new AgentError('UNSUPPORTED_ENCODING', '需要 UTF-8 文档，请转换编码后重新打开')
   }
   const newline = text.includes('\r\n') ? 'crlf' : 'lf'
-  return { text: text.replace(/\r\n/g, '\n'), format: { bom, newline } }
+  return { text: text.replace(/\r\n?/g, '\n'), format: { bom, newline } }
 }
 export function encodeFile(text: string, format: Format): Uint8Array {
   boundedText(text, '文档')
   let result = format.newline === 'crlf' ? text.replace(/\r?\n/g, '\r\n') : text
   if (format.bom) result = '\ufeff' + result
-  return new TextEncoder().encode(result)
+  const bytes = new TextEncoder().encode(result)
+  if (bytes.length > LIMITS.text)
+    throw new AgentError('FILE_TOO_LARGE', '保存后的文件将超过 2MiB（含 BOM 和换行），原文件未改动')
+  return bytes
 }
 export function bytesForSave(text: string, format: Format, baseline: Stamp | null) {
   return baseline && decodeFile(fromBase64(baseline.base64)).text === text

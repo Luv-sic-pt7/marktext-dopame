@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { FilePort } from '../app/src/file-port'
+import { FilePort, toBase64 } from '../app/src/file-port'
 import { DocumentController } from '../app/src/document-controller'
 import { StateStore } from '../state-store'
 import { AgentError, PROTOCOL, documentRef, unwrap } from '../protocol'
@@ -154,6 +154,46 @@ function submit(capability: string, input: any) {
   })
 }
 const state = (taskId: string) => call('getTask', token, { taskId }).state
+
+test('dirty checks reuse decoding while undo, empty files and new save baselines remain correct', async () => {
+  const d = await controller.create('脏状态缓存', '原文 😀')
+  d.savedRevision = d.revision
+  d.stamp = { base64: toBase64(new TextEncoder().encode(d.text)), modifiedMs: 0, size: 11 }
+  d.text += ' 修改'
+  d.revision++
+  const originalAtob = globalThis.atob
+  let decodes = 0
+  globalThis.atob = (value) => {
+    decodes++
+    return originalAtob(value)
+  }
+  try {
+    expect(controller.dirty(d)).toBe(true)
+    for (let i = 0; i < 8; i++) {
+      expect(controller.dirty(d)).toBe(true)
+      expect(controller.rows[0].dirty).toBe(true)
+    }
+    expect(decodes).toBe(1)
+    d.text = '原文 😀'
+    d.revision++
+    expect(controller.dirty(d)).toBe(false)
+    expect(decodes).toBe(1)
+    d.stamp = { base64: '', modifiedMs: 1, size: 0 }
+    d.text = ''
+    d.revision++
+    expect(controller.dirty(d)).toBe(false)
+    d.text = 'x\ny'
+    expect(controller.dirty(d)).toBe(true)
+    d.stamp = { base64: toBase64(new TextEncoder().encode('\ufeffx\r\ny')), modifiedMs: 2, size: 7 }
+    expect(controller.dirty(d)).toBe(false)
+    d.text += '!'
+    expect(controller.dirty(d)).toBe(true)
+    d.savedRevision = d.revision
+    expect(controller.dirty(d)).toBe(false)
+  } finally {
+    globalThis.atob = originalAtob
+  }
+})
 
 test('untrusted wake requests cannot replace a working execution credential', async () => {
   await expect(controller.connectWorker('f'.repeat(64))).rejects.toMatchObject({

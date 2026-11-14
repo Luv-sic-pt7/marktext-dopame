@@ -9,7 +9,7 @@ import {
   watch
 } from 'vue'
 import { window as nativeWindow } from 'acde:window'
-import { outline } from '../../protocol'
+import { canReuseOutline, outline } from '../../protocol'
 import type { EditorAdapter } from './editor-adapter'
 import { DocumentController } from './document-controller'
 import { useUiStore } from './ui-store'
@@ -56,7 +56,15 @@ const tabs = computed(() => {
   ui.version
   return c.openIds.map((id) => c.docs.get(id)).filter(Boolean)
 })
-const headings = computed(() => outline(active.value?.text ?? ''))
+const documentText = computed(() => active.value?.text ?? '')
+let outlineText = '',
+  outlineItems: ReturnType<typeof outline> = []
+const headings = computed(() => {
+  const text = documentText.value
+  if (text !== outlineText && !canReuseOutline(outlineText, text)) outlineItems = outline(text)
+  outlineText = text
+  return outlineItems
+})
 const selectionTick = ref(0)
 const tableContext = computed(() => {
   ui.version
@@ -188,6 +196,10 @@ const exportFile = () => run(() => c.exportFile())
 const switchMode = (mode: 'rich' | 'source' | 'preview') => run(() => c.mode(mode))
 const open = () => run(() => c.openFiles())
 const openInPlace = () => run(() => c.openFiles(true))
+const openSource = () => run(() => c.openFiles(true, 'source'))
+const sourceOpenItems: CommandMenuItem[] = [
+  { id: 'source', label: '源码原位打开', shortcut: 'Ctrl+Shift+O' }
+]
 const storage = computed(() => {
   const d = active.value
   if (!d) return ''
@@ -207,7 +219,17 @@ const status = computed(() => {
   if (!d) return '没有打开的文档'
   return d.readOnly ? '只读来源 · 可另存为' : c.dirty(d) ? '有未保存修改' : '已保存'
 })
-const wordCount = computed(() => [...(active.value?.text ?? '').replace(/\s/g, '')].length)
+const wordCount = computed(() => {
+  const whitespace = /\s/u
+  let count = 0
+  for (const character of documentText.value) {
+    const code = character.charCodeAt(0)
+    if (code < 128) {
+      if (code !== 32 && (code < 9 || code > 13)) count++
+    } else if (!whitespace.test(character)) count++
+  }
+  return count
+})
 async function refreshRoots() {
   loadingFiles.value = true
   try {
@@ -410,6 +432,12 @@ function setNativeMenus() {
         { id: 'new', label: '新建', shortcut: 'ctrl+n', onSelect: newDoc },
         { id: 'open', label: '导入文件', shortcut: 'ctrl+o', onSelect: open },
         { id: 'open-in-place', label: '原位打开文件', onSelect: openInPlace },
+        {
+          id: 'open-source',
+          label: '源码原位打开',
+          shortcut: 'ctrl+shift+o',
+          onSelect: openSource
+        },
         { id: 'save', label: '保存', shortcut: 'ctrl+s', disabled: !active.value, onSelect: save },
         {
           id: 'save-as',
@@ -567,7 +595,7 @@ function keyboard(event: KeyboardEvent) {
   let action: (() => any) | undefined
   if (modified) {
     if (key === 'n' && !event.shiftKey) action = newDoc
-    else if (key === 'o' && !event.shiftKey) action = open
+    else if (key === 'o') action = event.shiftKey ? openSource : open
     else if (key === 's') action = event.shiftKey ? saveAs : save
     else if (key === 'f' && !event.shiftKey) action = () => openSearch()
     else if (key === 'h' && !event.shiftKey) action = () => openSearch(true)
@@ -760,14 +788,22 @@ watch(
           :style="{ paddingLeft: 14 + node.depth * 14 + 'px' }"
           @click="run(() => chooseTree(node))"
         >
-          <span aria-hidden="true">{{ node.kind === 'directory' ? '›' : '≡' }}</span
-          ><span>{{ node.name }}</span>
+          <span aria-hidden="true">{{ node.kind === 'directory' ? '›' : '≡' }}</span><span>{{
+            node.name
+          }}</span>
         </button>
       </div>
       <div class="sidebar-bottom">
-        <button aria-label="原位打开文件" @click="openInPlace">
-          原位打开文件<span>回写所选文件</span>
-        </button>
+        <div class="file-open-row">
+          <button aria-label="原位打开文件" @click="openInPlace">
+            原位打开文件<span>回写所选文件</span>
+          </button>
+          <CommandMenu label="打开选项" :items="sourceOpenItems" icon @select="openSource">
+            <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+          </CommandMenu>
+        </div>
         <button @click="run(openManager)">
           协作中心
           <span :class="{ live: c.connected }">{{
@@ -819,8 +855,7 @@ watch(
         role="status"
         aria-label="文档操作反馈"
       >
-        <span>{{ c.notice.message }}</span
-        ><button
+        <span>{{ c.notice.message }}</span><button
           v-if="c.notice.kind === 'conflict' && active?.resource"
           @click="run(() => c.reloadExternal(active!.id))"
         >
@@ -1078,8 +1113,8 @@ watch(
           </aside>
         </div>
         <footer class="statusbar" aria-label="文档状态">
-          <span>{{ status }}</span
-          ><span class="num">{{ wordCount.toLocaleString('zh-CN') }} 字符</span
+          <span>{{ status }}</span><span class="num"
+            >{{ wordCount.toLocaleString('zh-CN') }} 字符</span
           ><span
             >UTF-8{{ active?.format.bom ? ' BOM' : '' }} ·
             {{ active?.format.newline === 'crlf' ? 'CRLF' : 'LF' }}</span
