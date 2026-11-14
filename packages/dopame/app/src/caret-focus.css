@@ -1,0 +1,23 @@
+/* Match the original host's explicit caret colour without changing read-only presentation. */
+.rich-host .mu-editor:not(.mu-read-only),
+.rich-host .mu-editor:not(.mu-read-only) .mu-content[contenteditable='true'] {
+  caret-color: var(--text);
+}
+
+.rich-host {
+  position: relative;
+}
+
+/* acdert's contenteditable exposes a live Range but does not paint its caret. */
+.native-rich-caret {
+  position: absolute;
+  z-index: 3;
+  width: 1px;
+  background: var(--text);
+  pointer-events: none;
+  user-select: none;
+}
+
+.native-rich-caret[hidden] {
+  display: none;
+}

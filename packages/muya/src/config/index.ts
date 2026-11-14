@@ -112,6 +112,7 @@ export const CLASS_NAMES = genUpper2LowerKeyHash([
     'MU_FOLD_TOGGLE',
     'MU_FOLDED',
     'MU_FOLDED_CONTENT',
+    'MU_DEL_MARKER',
     'MU_DISABLE_HTML_RENDER',
     'MU_EMOJI_MARKED_TEXT',
     'MU_EMOJI_MARKER',

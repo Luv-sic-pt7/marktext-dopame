@@ -48,7 +48,8 @@ let adapter: EditorAdapter | null = null,
   activityTimer: ReturnType<typeof setInterval> | null = null
 let lastId = '',
   lastMode = '',
-  lastResource = ''
+  lastResource = '',
+  lastFocusKey = ''
 const sample =
   '# 开始写作\n\n这是一份可以编辑的示例文档。支持中文、**强调**、列表和表格。\n\n## 今日计划\n\n- [ ] 写下一个想法\n- [ ] 切换源码，查看 Markdown\n- [ ] 保存笔记\n\n## 资料记录\n\n| 内容 | 状态 |\n| --- | --- |\n| 本机编辑 | 可用 |\n| Agent 协作 | 连接后使用 |\n\n> 修改来自同一套文档命令，并保留独立的版本。\n'
 const run = async (fn: () => any) => {
@@ -57,6 +58,30 @@ const run = async (fn: () => any) => {
   } catch (error) {
     c.error(error)
   }
+}
+async function focusActiveEditor() {
+  const id = c.activeId
+  const mode = c.active?.mode
+  await nextTick()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  if (
+    !adapter ||
+    c.activeId !== id ||
+    c.active?.mode !== mode ||
+    titleEditing.value ||
+    diff.value ||
+    closeDialog.value
+  )
+    return
+  const focused = document.activeElement
+  if (
+    (focused instanceof HTMLInputElement ||
+      focused instanceof HTMLTextAreaElement ||
+      focused instanceof HTMLSelectElement) &&
+    focused !== adapter.source.getInputField()
+  )
+    return
+  adapter.focus()
 }
 const newDoc = () =>
   run(async () => {
@@ -298,6 +323,7 @@ async function saveAndExit() {
   }
 }
 function onActivate() {
+  adapter?.setCaretActive(true)
   void c.checkExternal()
 }
 function keyboard(event: KeyboardEvent) {
@@ -415,6 +441,7 @@ onMounted(async () => {
     return false
   })
   nativeWindow.on('activate', onActivate)
+  nativeWindow.on('deactivate', () => adapter?.setCaretActive(false))
   activityTimer = setInterval(() => {
     if (c.preferences.collaboration) void activity()
   }, 1500)
@@ -424,6 +451,9 @@ watch(
   () => {
     document.documentElement.dataset.theme = c.preferences.theme
     const d = c.active
+    const focusKey = d ? d.id + ':' + d.mode : ''
+    const shouldFocus = focusKey !== lastFocusKey
+    lastFocusKey = focusKey
     if (d?.id !== lastId || !titleEditing.value) titleDraft.value = d?.title ?? ''
     if (!d || !adapter) return
     if (d.id !== lastId || d.mode !== lastMode || JSON.stringify(d.resource) !== lastResource) {
@@ -432,6 +462,7 @@ watch(
       lastMode = d.mode
       lastResource = JSON.stringify(d.resource)
     }
+    if (shouldFocus) void focusActiveEditor()
     nativeWindow.setTitle((c.dirty(d) ? '• ' : '') + d.title + ' — MarkText')
   }
 )
@@ -440,6 +471,7 @@ onBeforeUnmount(() => {
   unsubscribe()
   if (activityTimer) clearInterval(activityTimer)
   adapter?.destroy()
+  adapter = null
 })
 watch(
   [

@@ -4,9 +4,15 @@ import 'codemirror/mode/gfm/gfm'
 import { matchString } from '@muyajs/core/utils/search.ts'
 import { getBlock } from '@muyajs/core/utils/dom.ts'
 import {
+  delVisibleBoundary,
+  moveVisibleDelCaret,
+  normalizeVisibleDelCaret,
+  setVisibleDelSelection
+} from './visible-del-caret'
+import { NativeCaret } from './native-caret'
+import {
   Muya,
   zhCN,
-  InlineFormatToolbar,
   TableColumnToolbar,
   TableRowColumMenu,
   ParagraphFrontButton,
@@ -23,6 +29,7 @@ import {
 } from './document-controller'
 import { setImageContext, clearImageContext } from './image-platform'
 import { AccessibleTablePicker } from './table-picker-ui'
+import { AccessibleInlineFormatToolbar } from './inline-toolbar-ui'
 import {
   convertParagraphLines,
   indentListLines,
@@ -84,6 +91,7 @@ export class EditorAdapter implements EditorBridge {
   private currentId = ''
   private currentMode: Mode = 'rich'
   private loading = false
+  private nativeCaret: NativeCaret | null = null
   private richBaseline = ''
   private imageScope = ''
   private searchKey = ''
@@ -150,7 +158,8 @@ export class EditorAdapter implements EditorBridge {
         event.preventDefault()
         event.stopImmediatePropagation()
         target!.focus({ preventScroll: true })
-        this.muya.editor.selection.setSelection(point, point)
+        const visible = delVisibleBoundary(point, event.key === 'Home' ? 1 : -1)
+        setVisibleDelSelection(this.muya, visible, visible)
         return
       }
     }
@@ -187,35 +196,25 @@ export class EditorAdapter implements EditorBridge {
     else if (event.key === 'End') {
       const end = text.indexOf('\n', position)
       position = end < 0 ? text.length : end
-    } else if (event.key === 'ArrowLeft' && position > 0)
-      position -=
-        /[\uDC00-\uDFFF]/.test(text[position - 1]) &&
-        /[\uD800-\uDBFF]/.test(text[position - 2] ?? '')
-          ? 2
-          : 1
-    else if (event.key === 'ArrowRight' && position < text.length)
-      position +=
-        /[\uD800-\uDBFF]/.test(text[position]) && /[\uDC00-\uDFFF]/.test(text[position + 1] ?? '')
-          ? 2
-          : 1
-    else if (event.key === 'ArrowLeft') {
-      const previous = block.previousContentInContext(true)
-      if (previous) {
-        block = previous
-        position = block.text.length
-      }
-    } else if (event.key === 'ArrowRight') {
-      const next = block.nextContentInContext(true)
-      if (next) {
-        block = next
-        position = 0
-      }
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const next = moveVisibleDelCaret(selection.focus, event.key === 'ArrowLeft' ? -1 : 1)
+      block = next.block
+      position = next.offset
     }
-    const focus = { block, path: [...block.path], offset: position }
+    const current = { block, path: [...block.path], offset: position }
+    const focus =
+      event.key === 'Home' || event.key === 'End'
+        ? delVisibleBoundary(current, event.key === 'Home' ? 1 : -1)
+        : current
     event.preventDefault()
     event.stopImmediatePropagation()
     ;(block.domNode as HTMLElement | null)?.focus({ preventScroll: true })
-    this.muya.editor.selection.setSelection(event.shiftKey ? selection.anchor : focus, focus)
+    setVisibleDelSelection(
+      this.muya,
+      event.shiftKey ? selection.anchor : focus,
+      focus,
+      event.key === 'ArrowLeft' || event.key === 'End' ? -1 : 1
+    )
   }
   constructor(
     readonly controller: DocumentController,
@@ -226,7 +225,7 @@ export class EditorAdapter implements EditorBridge {
   ) {
     if (!pluginsRegistered) {
       for (const p of [
-        InlineFormatToolbar,
+        AccessibleInlineFormatToolbar,
         AccessibleTablePicker,
         TableColumnToolbar,
         TableRowColumMenu,
@@ -264,13 +263,23 @@ export class EditorAdapter implements EditorBridge {
       }
     })
     this.source.getInputField().setAttribute('aria-label', 'Markdown 源码')
+    if (nativeSelection)
+      this.nativeCaret = new NativeCaret(
+        richHost,
+        this.muya.domNode,
+        () => this.currentMode === 'rich' && !!controller.active && !controller.active.readOnly
+      )
     this.muya.on('json-change', () => {
       if (!this.loading && this.currentMode === 'rich' && !controller.composing) this.commit()
+      this.nativeCaret?.refresh()
     })
     this.source.on('change', () => {
       if (!this.loading && this.currentMode === 'source' && !controller.composing) this.commit()
     })
-    this.muya.on('selection-change', () => this.onContextChange())
+    this.muya.on('selection-change', () => {
+      this.onContextChange()
+      this.nativeCaret?.refresh()
+    })
     const compositionStart = () => {
       controller.composing = true
     }
@@ -418,6 +427,7 @@ export class EditorAdapter implements EditorBridge {
       this.richBaseline = this.canonical(this.muya.getMarkdown())
       requestAnimationFrame(() => {
         if (d.mode === 'source') this.source.refresh()
+        this.nativeCaret?.refresh()
       })
     } finally {
       this.loading = false
@@ -467,8 +477,38 @@ export class EditorAdapter implements EditorBridge {
     }
   }
   focus() {
-    if (this.currentMode === 'source') this.source.focus()
-    else this.muya.focus()
+    if (!this.controller.active) return
+    if (this.currentMode === 'source') {
+      this.source.focus()
+      return
+    }
+    if (this.muya.isReadOnly) {
+      this.muya.domNode.focus({ preventScroll: true })
+      return
+    }
+    const selection = this.muya.editor.selection.getSelection()
+    const live =
+      selection &&
+      [selection.anchor, selection.focus].every(
+        (point) => point.block.domNode && this.muya.domNode.contains(point.block.domNode)
+      )
+    if (live && document.activeElement === selection.focus.block.domNode) {
+      normalizeVisibleDelCaret(this.muya)
+      this.nativeCaret?.refresh()
+      return
+    }
+    // Muya restores a Range; the native renderer also needs its editable DOM node focused.
+    this.muya.domNode.focus({ preventScroll: true })
+    this.muya.focus()
+    const restored = live ? selection : this.muya.editor.selection.getSelection()
+    if (restored) {
+      this.muya.editor.selection.setSelection(restored.anchor, restored.focus)
+    }
+    normalizeVisibleDelCaret(this.muya)
+    this.nativeCaret?.refresh()
+  }
+  setCaretActive(active: boolean) {
+    this.nativeCaret?.setActive(active)
   }
   undo() {
     if (
@@ -480,6 +520,7 @@ export class EditorAdapter implements EditorBridge {
     if (this.currentMode === 'source') this.source.undo()
     else this.muya.undo()
     this.flush()
+    this.focus()
   }
   redo() {
     if (
@@ -491,6 +532,7 @@ export class EditorAdapter implements EditorBridge {
     if (this.currentMode === 'source') this.source.redo()
     else this.muya.redo()
     this.flush()
+    this.focus()
   }
   format(type: 'strong' | 'em' | 'inline_code' | 'del') {
     if (this.currentMode === 'preview' || this.controller.active?.readOnly) return
@@ -965,6 +1007,7 @@ export class EditorAdapter implements EditorBridge {
     }
   }
   destroy() {
+    this.nativeCaret?.destroy()
     this.clearSearch(false)
     this.richHost.removeEventListener('keydown', this.nativeKey, true)
     this.richHost.removeEventListener('click', this.nativePointer, true)

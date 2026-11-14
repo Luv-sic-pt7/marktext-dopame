@@ -23,7 +23,8 @@ export default function delEmStrongFac(
     }: ISyntaxRenderOptions & { token: StrongEmToken | DelToken | MarkToken },
 ) {
     const className = this.getClassName(outerClass, block, token, cursor);
-    const COMMON_MARKER = `span.${className}.${CLASS_NAMES.MU_REMOVE}`;
+    const markerClass = type === 'del' ? `.${CLASS_NAMES.MU_DEL_MARKER}` : '';
+    const COMMON_MARKER = `span.${className}.${CLASS_NAMES.MU_REMOVE}${markerClass}`;
     const { marker } = token;
     const { start, end } = token.range;
     const backlashStart

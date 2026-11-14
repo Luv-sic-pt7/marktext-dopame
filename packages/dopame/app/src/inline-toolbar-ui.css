@@ -1,0 +1,45 @@
+.mu-format-picker.dopame-inline-format-toolbar {
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  height: auto;
+  color: var(--text);
+}
+.dopame-inline-format-toolbar ul {
+  flex-wrap: wrap;
+}
+.dopame-inline-format-toolbar li.item {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 32px;
+}
+.dopame-inline-format-toolbar li.item.color {
+  flex-basis: auto;
+}
+.dopame-inline-format-toolbar li.item[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--active);
+}
+.dopame-inline-format-toolbar [role='button']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.dopame-inline-format-toolbar .dopame-inline-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 16px;
+  line-height: 1;
+  pointer-events: none;
+}
+.dopame-inline-format-toolbar .dopame-underline {
+  text-decoration: underline;
+}
+.dopame-inline-format-toolbar li.item.color .icon-wrapper i.icon {
+  color: var(--text);
+  font-style: normal;
+}
+.dopame-inline-format-toolbar li.item.color .icon-wrapper i.caret {
+  border-top-color: var(--text);
+}

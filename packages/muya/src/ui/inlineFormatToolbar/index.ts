@@ -230,8 +230,8 @@ export class InlineFormatToolbar extends BaseFloat {
 
         const children = icons.map(icon =>
             icon.type === 'color'
-                ? this._createColorItem(icon, i18n)
-                : this._createIconItem(icon, formats, i18n),
+                ? this.createColorItem(icon, i18n)
+                : this.createIconItem(icon, formats, i18n),
         );
         const vnode = h('ul', children);
 
@@ -245,7 +245,7 @@ export class InlineFormatToolbar extends BaseFloat {
      * @param formats - Currently applied formats
      * @param i18n - Internationalization instance
      */
-    private _createIconItem(icon: FormatToolIcon, formats: Token[], i18n: typeof this.muya.i18n) {
+    protected createIconItem(icon: FormatToolIcon, formats: Token[], i18n: typeof this.muya.i18n) {
         const iconElement = h(
             'i.icon',
             h(
@@ -338,7 +338,7 @@ export class InlineFormatToolbar extends BaseFloat {
      * `A` tile previews the selection colours, its caret opens the picker on
      * hover, and clicking the tile clears both colours (Reset).
      */
-    private _createColorItem(icon: FormatToolIcon, i18n: typeof this.muya.i18n) {
+    protected createColorItem(icon: FormatToolIcon, i18n: typeof this.muya.i18n) {
         const { color, backgroundColor } = this._colorState();
 
         // Unset properties must be omitted, not `undefined`: snabbdom only

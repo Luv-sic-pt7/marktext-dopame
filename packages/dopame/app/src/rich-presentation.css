@@ -1,0 +1,17 @@
+/* Keep the source delimiters in the DOM for Muya's character offsets. */
+.rich-host .mu-editor .mu-del-marker,
+.rich-host .mu-editor .mu-del-marker .mu-highlight,
+.rich-host .mu-editor .mu-del-marker .mu-selection {
+  display: inline;
+  width: auto;
+  height: auto;
+  font-size: 0;
+  line-height: 0;
+  white-space: nowrap;
+  color: transparent;
+}
+
+.rich-host .mu-editor .mu-del-marker::selection {
+  color: transparent;
+  background: transparent;
+}

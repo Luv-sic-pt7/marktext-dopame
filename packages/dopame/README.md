@@ -1,6 +1,6 @@
 # MarkText for Dopame OS · MVP 0.1.0
 
-查找、表格、启动入口与其他编辑工具的最新改动及验收见 [编辑工具与交互修复（2026-11-14）](docs/editor-batch-2.md)。
+选区浮条、删除线与光标的最新改动见 [富文本选区与光标显示修复](docs/editor-batch-3.md)；查找、表格与其他编辑工具见 [编辑工具与交互修复](docs/editor-batch-2.md)。
 
 在 Dopame/acdert 中复用 MarkText 的 Muya 编辑器，支持人与获授权 Agent 按固定文档版本进行写作、审阅、确认和交付。本分支公开 MVP 0.1.0 源码，按《MVP方案.md》v1.1 的 M1–M12 记录开发验证；已有多标签、源码、目录等功能保留。0.1.0 的历史开发记录、本次复验和未测边界见 [公开验收摘要](docs/acceptance-public.md)。
 
