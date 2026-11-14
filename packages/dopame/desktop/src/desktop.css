@@ -274,17 +274,11 @@ td.empty {
   overflow-y: auto;
 }
 #dock {
-  position: relative;
-  z-index: 20;
-  isolation: isolate;
   display: flex;
   gap: 8px;
-  width: max-content;
-  margin: 0 auto 12px;
-  padding: 7px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  max-width: 70vw;
+  overflow-x: auto;
+  margin: 0;
 }
 [hidden] {
   display: none !important;

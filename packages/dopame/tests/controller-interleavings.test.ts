@@ -383,3 +383,30 @@ test('title edits during a lost save completion response survive recovery as an 
   expect(controller.active?.title).toContain('新题')
   expect(controller.active?.text).toBe('正文')
 })
+
+test('closed tabs retain unsaved text and engine state across restart and reopen in reverse order', async () => {
+  const first = await controller.create('第一篇', '第一篇正文')
+  const second = await controller.create('第二篇', '第二篇正文')
+  const history = {
+    sourceText: '第二篇草稿 😀',
+    cursor: { anchor: { line: 0, ch: 2 }, focus: { line: 0, ch: 2 } }
+  }
+  controller.edit(second.id, history.sourceText, history)
+  await controller.closeTab(first.id)
+  await controller.closeTab(second.id)
+  await controller.closeTab(second.id)
+  expect(controller.openIds).toEqual([])
+  expect(controller.closedIds).toEqual([first.id, second.id])
+  const restored = new DocumentController(new FilePort(memory.fs), controller.transport)
+  await restored.ready
+  expect(restored.closedIds).toEqual([first.id, second.id])
+  expect((await restored.reopenClosedTab())?.id).toBe(second.id)
+  expect(restored.active?.text).toBe(history.sourceText)
+  expect(restored.active?.history).toEqual(history)
+  expect(restored.closedIds).toEqual([first.id])
+  await restored.activate(first.id)
+  expect(restored.closedIds).toEqual([])
+  expect(restored.openIds).toEqual([second.id, first.id])
+  expect(await restored.reopenClosedTab()).toBeNull()
+  expect(restored.active?.text).toBe('第一篇正文')
+})

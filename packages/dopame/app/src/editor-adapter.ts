@@ -2,11 +2,11 @@ import CodeMirror from 'codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/gfm/gfm'
 import { matchString } from '@muyajs/core/utils/search.ts'
+import { getBlock } from '@muyajs/core/utils/dom.ts'
 import {
   Muya,
   zhCN,
   InlineFormatToolbar,
-  TableChessboard,
   TableColumnToolbar,
   TableRowColumMenu,
   ParagraphFrontButton,
@@ -22,6 +22,14 @@ import {
   type Mode
 } from './document-controller'
 import { setImageContext, clearImageContext } from './image-platform'
+import { AccessibleTablePicker } from './table-picker-ui'
+import {
+  convertParagraphLines,
+  indentListLines,
+  type ParagraphType,
+  type ParagraphLineChange
+} from './paragraph-commands'
+import { AccessibleCodeBlockLanguageSelector, labelCodeBlocks } from './code-block-ui'
 
 class AccessibleQuickInsertMenu extends ParagraphQuickInsertMenu {
   protected override activeEleScrollIntoView(element: HTMLElement) {
@@ -81,19 +89,86 @@ export class EditorAdapter implements EditorBridge {
   private searchKey = ''
   private searchIndex = -1
   private searchMarks: CodeMirror.TextMarker[] = []
+  private nativePointerTarget: HTMLElement | null = null
+  private nativePointer = (event: MouseEvent) => {
+    this.nativePointerTarget =
+      event.target instanceof Element
+        ? event.target.closest<HTMLElement>('.mu-content[contenteditable="true"]')
+        : null
+  }
+  private taskCheckbox = (event: MouseEvent) => {
+    if (
+      this.currentMode !== 'rich' ||
+      this.controller.active?.readOnly ||
+      !(event.target instanceof HTMLInputElement) ||
+      !event.target.matches('.mu-task-list-checkbox')
+    )
+      return
+    this.muya.flush()
+    this.muya.editor.history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+    queueMicrotask(() => {
+      this.muya.flush()
+      this.muya.editor.history.cutoff()
+      this.flush()
+    })
+  }
   private imageRefresh: ReturnType<typeof setTimeout> | null = null
   private nativeKey = (event: KeyboardEvent) => {
+    const pointerTarget = this.nativePointerTarget
+    this.nativePointerTarget = null
     if (
       this.currentMode !== 'rich' ||
       this.controller.composing ||
       event.ctrlKey ||
       event.altKey ||
       event.metaKey ||
-      !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+      (event.target instanceof Element && !!event.target.closest('input,textarea,select')) ||
+      !['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'].includes(event.key)
     )
       return
     const selection = this.muya.editor.selection.getSelection()
+    if (!event.shiftKey && (event.key === 'Home' || event.key === 'End')) {
+      const target =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>('.mu-content[contenteditable="true"]')
+          : null
+      const focused = getBlock(target)
+      // Only a pointer click makes the editable target newer than acdert's retained DOM range.
+      if (
+        target === pointerTarget &&
+        target !== null &&
+        focused?.isContent() &&
+        focused.muya === this.muya &&
+        focused.outMostBlock &&
+        (!selection || (selection.isCollapsed && selection.focus.block !== focused))
+      ) {
+        const point = {
+          block: focused,
+          path: [...focused.path],
+          offset: event.key === 'Home' ? 0 : focused.text.length
+        }
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        target!.focus({ preventScroll: true })
+        this.muya.editor.selection.setSelection(point, point)
+        return
+      }
+    }
     if (!selection) return
+    if (event.key === 'Tab') {
+      const block = selection.focus.block
+      if (
+        this.controller.active?.readOnly ||
+        !selection.isSelectionInSameBlock ||
+        block.blockName !== 'paragraph.content' ||
+        !['bullet-list', 'order-list', 'task-list'].some((name) => block.closestBlock(name))
+      )
+        return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      this.indentList(event.shiftKey)
+      return
+    }
     let block = selection.focus.block
     const text = block.text
     let position = selection.focus.offset
@@ -146,17 +221,19 @@ export class EditorAdapter implements EditorBridge {
     readonly controller: DocumentController,
     readonly richHost: HTMLElement,
     readonly sourceHost: HTMLElement,
-    nativeSelection = false
+    nativeSelection = false,
+    private readonly onContextChange: () => void = () => {}
   ) {
     if (!pluginsRegistered) {
       for (const p of [
         InlineFormatToolbar,
-        TableChessboard,
+        AccessibleTablePicker,
         TableColumnToolbar,
         TableRowColumMenu,
         ParagraphFrontButton,
         ParagraphFrontMenu,
-        AccessibleQuickInsertMenu
+        AccessibleQuickInsertMenu,
+        AccessibleCodeBlockLanguageSelector
       ])
         Muya.use(p)
       pluginsRegistered = true
@@ -193,6 +270,7 @@ export class EditorAdapter implements EditorBridge {
     this.source.on('change', () => {
       if (!this.loading && this.currentMode === 'source' && !controller.composing) this.commit()
     })
+    this.muya.on('selection-change', () => this.onContextChange())
     const compositionStart = () => {
       controller.composing = true
     }
@@ -208,7 +286,11 @@ export class EditorAdapter implements EditorBridge {
     }
     controller.bridge = this
     // acdert 0.0.9 does not perform the browser's horizontal contenteditable selection default.
-    if (nativeSelection) richHost.addEventListener('keydown', this.nativeKey, true)
+    if (nativeSelection) {
+      richHost.addEventListener('keydown', this.nativeKey, true)
+      richHost.addEventListener('click', this.nativePointer, true)
+    }
+    richHost.addEventListener('click', this.taskCheckbox, true)
   }
   private canonical(text: string) {
     return text
@@ -332,6 +414,7 @@ export class EditorAdapter implements EditorBridge {
       this.source.setOption('readOnly', d.readOnly ? 'nocursor' : false)
       this.richHost.hidden = d.mode === 'source'
       this.sourceHost.hidden = d.mode !== 'source'
+      labelCodeBlocks(this.muya)
       this.richBaseline = this.canonical(this.muya.getMarkdown())
       requestAnimationFrame(() => {
         if (d.mode === 'source') this.source.refresh()
@@ -465,15 +548,157 @@ export class EditorAdapter implements EditorBridge {
     })
     doc.changeGeneration(true)
   }
+  private selectedTableCell() {
+    const document = this.controller.active
+    if (!document || document.readOnly || this.currentMode !== 'rich') return null
+    const selection = this.muya.editor.selection.getSelection()
+    if (
+      !selection?.isSelectionInSameBlock ||
+      selection.focus.block.blockName !== 'table.cell.content'
+    )
+      return null
+    const cell = selection.focus.block
+      .parent as import('@muyajs/core/block/gfm/table/cell.ts').default
+    if (!cell.outMostBlock) return null
+    return { cell, selection }
+  }
+  get tableContext() {
+    const current = this.selectedTableCell()
+    if (!current) return null
+    const { cell } = current
+    return {
+      row: cell.rowOffset,
+      column: cell.columnOffset,
+      rows: cell.table.rowCount,
+      columns: cell.table.columnCount,
+      align: cell.align,
+      canDeleteRow: cell.table.rowCount > 1,
+      canDeleteColumn: cell.table.columnCount > 1
+    }
+  }
+  tableCommand(
+    action:
+      | 'insert-row'
+      | 'delete-row'
+      | 'insert-column'
+      | 'delete-column'
+      | 'align-left'
+      | 'align-center'
+      | 'align-right'
+  ) {
+    const current = this.selectedTableCell()
+    if (!current || this.controller.composing) return
+    const { cell, selection } = current
+    const { table, rowOffset: row, columnOffset: column } = cell
+    if (action === 'delete-row' && table.rowCount <= 1) return
+    if (action === 'delete-column' && table.columnCount <= 1) return
+    this.muya.flush()
+    const history = this.muya.editor.history
+    history.cutoff(selection)
+    let target = selection.focus.block
+    switch (action) {
+      case 'insert-row':
+        target = table.insertRow(row + 1) ?? target
+        break
+      case 'delete-row':
+        target = table.removeRow(row) ?? target
+        break
+      case 'insert-column':
+        target = table.insertColumn(column + 1)
+        break
+      case 'delete-column':
+        target = table.removeColumn(column) ?? target
+        break
+      default:
+        table.alignColumn(column, action.slice('align-'.length))
+    }
+    ;(target.domNode as HTMLElement).focus({ preventScroll: true })
+    if (action.startsWith('align-'))
+      this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
+    else target.setCursor(0, 0, true)
+    this.muya.flush()
+    history.cutoff()
+    this.flush()
+    this.controller.emit()
+  }
+  insertCodeBlock() {
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview' ||
+      this.controller.composing
+    )
+      return
+    if (this.currentMode === 'source') {
+      const from = this.source.getCursor('from')
+      const to = this.source.getCursor('to')
+      const selected = this.source.getSelection()
+      const runs = selected.match(/`+/g) ?? []
+      const fence = '`'.repeat(runs.reduce((length, run) => Math.max(length, run.length + 1), 3))
+      const prefix = from.ch > 0 ? '\n' : ''
+      const suffix = to.ch < this.source.getLine(to.line).length ? '\n' : ''
+      const start = this.source.indexFromPos(from) + prefix.length + fence.length + 1
+      const inserted =
+        prefix + fence + '\n' + selected + (selected.endsWith('\n') ? '' : '\n') + fence + suffix
+      const doc = this.source.getDoc()
+      doc.changeGeneration(true)
+      this.source.operation(() => {
+        this.source.replaceRange(inserted, from, to, '+code-block')
+        this.source.setSelection(
+          this.source.posFromIndex(start),
+          this.source.posFromIndex(start + selected.length)
+        )
+      })
+      doc.changeGeneration(true)
+    } else {
+      this.muya.flush()
+      const history = this.muya.editor.history
+      history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+      const current = this.muya.editor.selection.getSelection()?.focus.block
+      if (!current?.closestBlock('code-block')) this.muya.updateParagraph('pre')
+      const code = this.muya.editor.activeContentBlock?.closestBlock('code-block')
+      const content = code?.isParent() ? code.lastContentInDescendant() : null
+      if (content) {
+        ;(content.domNode as HTMLElement).focus({ preventScroll: true })
+        content.setCursor(content.text.length, content.text.length, true)
+      }
+      this.muya.flush()
+      history.cutoff()
+      labelCodeBlocks(this.muya)
+    }
+    this.flush()
+    this.focus()
+  }
   insertTable() {
-    if (this.currentMode === 'preview') return
-    if (this.currentMode === 'source')
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview' ||
+      this.controller.composing
+    )
+      return
+    if (this.currentMode === 'source') {
+      this.source.getDoc().changeGeneration(true)
       this.source.replaceSelection(
         '| 项目 | 内容 |\n| --- | --- |\n| 示例 | 文本 |\n',
         'end',
         '+table'
       )
-    else this.muya.updateParagraph('table')
+      this.source.getDoc().changeGeneration(true)
+    } else {
+      this.muya.focus()
+      const block = this.muya.editor.selection.getSelection()?.focus.block.getAnchor()
+      if (!block?.outMostBlock || !block.domNode) return
+      this.muya.eventCenter.emit(
+        'muya-table-picker',
+        { row: 1, column: 1 },
+        block.domNode,
+        (row: number, column: number) => {
+          if (block.outMostBlock)
+            this.muya.createTable({ rows: row + 1, columns: column + 1 }, { block })
+        }
+      )
+    }
     this.flush()
     this.focus()
   }
@@ -492,11 +717,115 @@ export class EditorAdapter implements EditorBridge {
     this.flush()
     this.focus()
   }
+  convertParagraph(type: ParagraphType) {
+    if (
+      !this.controller.active ||
+      this.currentMode === 'preview' ||
+      this.controller.active.readOnly ||
+      this.controller.composing
+    )
+      return
+    if (this.currentMode === 'source') {
+      const { from, to } = this.selectedParagraphRange()
+      const lines = Array.from({ length: to - from + 1 }, (_, index) =>
+        this.source.getLine(from + index)
+      )
+      this.changeParagraphLines(from, to, convertParagraphLines(lines, type))
+    } else {
+      this.muya.flush()
+      const history = this.muya.editor.history
+      history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+      this.muya.updateParagraph(type === 'paragraph' ? 'reset-to-paragraph' : type)
+      this.muya.flush()
+      history.cutoff()
+      const selection = this.muya.editor.selection.getSelection()
+      if (selection) {
+        ;(selection.focus.block.domNode as HTMLElement).focus({ preventScroll: true })
+        this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
+      }
+    }
+    this.flush()
+    this.focus()
+  }
+  indentList(outdent = false) {
+    if (
+      !this.controller.active ||
+      this.currentMode === 'preview' ||
+      this.controller.active.readOnly ||
+      this.controller.composing
+    )
+      return
+    if (this.currentMode === 'source') {
+      const { from, to } = this.selectedParagraphRange()
+      const changes = indentListLines(this.source.getValue().split('\n'), from, to, outdent)
+      if (!changes) return
+      this.changeParagraphLines(from, to, changes)
+    } else {
+      this.muya.flush()
+      const selection = this.muya.editor.selection.getSelection()
+      const block = selection?.focus.block
+      if (
+        !selection?.isSelectionInSameBlock ||
+        !block ||
+        block.blockName !== 'paragraph.content' ||
+        !['bullet-list', 'order-list', 'task-list'].some((name) => block.closestBlock(name))
+      )
+        return
+      const history = this.muya.editor.history
+      history.cutoff(selection)
+      ;(block.domNode as HTMLElement).focus({ preventScroll: true })
+      this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
+      block.tabHandler(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: outdent }))
+      this.muya.flush()
+      history.cutoff()
+      const current = this.muya.editor.selection.getSelection()
+      if (current) {
+        ;(current.focus.block.domNode as HTMLElement).focus({ preventScroll: true })
+        this.muya.editor.selection.setSelection(current.anchor, current.focus)
+      }
+    }
+    this.flush()
+    this.focus()
+  }
+  private selectedParagraphRange() {
+    const start = this.source.getCursor('from')
+    const end = this.source.getCursor('to')
+    return { from: start.line, to: end.line > start.line && end.ch === 0 ? end.line - 1 : end.line }
+  }
+  private changeParagraphLines(from: number, to: number, changes: ParagraphLineChange[]) {
+    const anchor = this.source.getCursor('anchor')
+    const head = this.source.getCursor('head')
+    const mapped = (position: CodeMirror.Position) => {
+      const change = changes[position.line - from]
+      return change
+        ? {
+            line: position.line,
+            ch: Math.min(
+              change.text.length,
+              Math.max(0, position.ch - change.removed) + change.added
+            )
+          }
+        : position
+    }
+    const document = this.source.getDoc()
+    document.changeGeneration(true)
+    this.source.operation(() => {
+      this.source.replaceRange(
+        changes.map((line) => line.text).join('\n'),
+        { line: from, ch: 0 },
+        { line: to, ch: this.source.getLine(to).length },
+        '+paragraph'
+      )
+      this.source.setSelection(mapped(anchor), mapped(head))
+    })
+    document.changeGeneration(true)
+  }
   private clearSearchMarks() {
     for (const mark of this.searchMarks) mark.clear()
     this.searchMarks = []
   }
   clearSearch(restoreSelection = true) {
+    this.nativePointerTarget = null
     this.clearSearchMarks()
     this.muya.search('', { selectHighlight: restoreSelection })
     this.searchKey = ''
@@ -563,8 +892,14 @@ export class EditorAdapter implements EditorBridge {
     this.searchIndex = result.index
     if (selection) this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
     const current = result.matches[result.index]
-    if (current && reveal)
-      (current.block.domNode as HTMLElement)?.scrollIntoView({ block: 'nearest' })
+    if (current && reveal) {
+      current.block.setCursor(current.start, current.end)
+      const block = current.block.domNode as HTMLElement | null
+      ;(block?.querySelector<HTMLElement>('.mu-highlight') ?? block)?.scrollIntoView({
+        block: 'center',
+        inline: 'nearest'
+      })
+    }
     return { index: result.index + 1, count: result.matches.length, error: '' }
   }
   replace(query: string, replacement: string, options: ISearchOption = {}, single = true) {
@@ -632,6 +967,8 @@ export class EditorAdapter implements EditorBridge {
   destroy() {
     this.clearSearch(false)
     this.richHost.removeEventListener('keydown', this.nativeKey, true)
+    this.richHost.removeEventListener('click', this.nativePointer, true)
+    this.richHost.removeEventListener('click', this.taskCheckbox, true)
     clearImageContext()
     if (this.imageRefresh) clearTimeout(this.imageRefresh)
     this.muya.destroy()

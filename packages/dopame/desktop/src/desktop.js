@@ -1,6 +1,5 @@
 /// <reference types="@dopame/acde-api/shell" />
 import { apps } from 'acde:apps'
-import { desktop } from 'acde:desktop'
 import * as namespaces from 'acde:marktext-agent'
 const service = namespaces['marktext-agent']
 const $ = (id) => document.getElementById(id)
@@ -327,11 +326,10 @@ $('grant-form').onsubmit = (event) => {
   }, event.submitter)
 }
 const dock = $('dock')
-for (const app of await apps.list())
+for (const app of (await apps.list()).filter((app) => app.id !== 'marktext-dopame'))
   dock.append(
     action(app.label, () => (app.id === 'marktext-dopame' ? openEditor() : apps.open(app.id)))
   )
-desktop.pin(dock, { margin: 8, reserve: { edge: 'bottom' } })
 setInterval(() => {
   if (administrator) void run(refresh)
 }, 2000)

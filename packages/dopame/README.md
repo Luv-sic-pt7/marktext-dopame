@@ -1,5 +1,7 @@
 # MarkText for Dopame OS · MVP 0.1.0
 
+查找、表格、启动入口与其他编辑工具的最新改动及验收见 [编辑工具与交互修复（2026-11-14）](docs/editor-batch-2.md)。
+
 在 Dopame/acdert 中复用 MarkText 的 Muya 编辑器，支持人与获授权 Agent 按固定文档版本进行写作、审阅、确认和交付。本分支公开 MVP 0.1.0 源码，按《MVP方案.md》v1.1 的 M1–M12 记录开发验证；已有多标签、源码、目录等功能保留。0.1.0 的历史开发记录、本次复验和未测边界见 [公开验收摘要](docs/acceptance-public.md)。
 
 源码基线为 `6bcca964e73b3fe1f5d981cea9f3b79f82968ebe`；上游为 MarkText v0.23.0，提交 `18fdc1eddc7d36d9b205180d058982f71f4f6373`。完整 Git 历史与原 MIT LICENSE 保留，移植代码位于 `packages/dopame`，不启动 Electron。0.2.0 是单独版本，不属于本分支。第三方依赖按各自许可使用，见 [第三方声明](THIRD-PARTY-NOTICES.txt)。

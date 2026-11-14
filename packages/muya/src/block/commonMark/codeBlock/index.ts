@@ -132,7 +132,8 @@ class CodeBlock extends Parent {
     constructor(muya: Muya, { meta }: ICodeBlockState) {
         super(muya);
         this.tagName = 'pre';
-        this.meta = meta;
+        // Language edits queue text operations; mutating shared insertion metadata would apply them twice.
+        this.meta = { ...meta };
         this.classList = ['mu-code-block', `mu-${meta.type}-code`];
         if (meta.fenceChar === '~')
             this.classList.push('mu-tilde-fence');

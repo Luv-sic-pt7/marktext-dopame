@@ -296,6 +296,11 @@ input {
   padding: 0 10px;
   font-size: 18px;
 }
+.reopen-tab {
+  flex: none;
+  font-size: 19px;
+  padding: 0 8px;
+}
 .editor-body {
   display: flex;
   flex-direction: column;
@@ -353,11 +358,51 @@ input {
   gap: 2px;
   padding: 0 20px 8px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex: none;
 }
 .format-toolbar button {
+  flex: none;
   font-size: 12px;
   padding: 3px 8px;
   min-width: 30px;
+}
+.paragraph-menu {
+  flex: none;
+  max-width: 96px;
+  min-height: 30px;
+  padding: 3px 5px;
+  border: 1px solid var(--control);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+}
+.paragraph-menu:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.table-tools {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+}
+.table-tools button,
+.table-position {
+  font-size: 12px;
+}
+.table-position {
+  color: var(--muted);
+  margin-right: 8px;
+}
+.table-tools button[aria-pressed='true'] {
+  background: var(--active);
 }
 .toolbar-separator {
   height: 16px;
@@ -691,12 +736,26 @@ input {
   width: min(1000px, 100%);
 }
 .storage-location {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   flex: none;
   margin: 0;
   padding: 0 28px 10px;
   color: var(--muted);
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+.storage-location > span {
+  flex: 1;
+  min-width: 0;
+}
+.storage-action {
+  flex: none;
+  min-height: 24px;
+  padding: 0 4px;
+  color: var(--accent);
+  font-size: 12px;
 }
 .diff-columns {
   display: grid;
@@ -820,6 +879,12 @@ input {
   }
   .rich-host {
     padding: 24px 18px 60px;
+  }
+  .table-tools {
+    padding: 6px 10px;
+  }
+  .table-position {
+    flex-basis: 100%;
   }
   .search-bar {
     flex-wrap: wrap;

@@ -60,6 +60,7 @@ const snapshot = (d: Session) => ({
 export class DocumentController {
   docs = new Map<string, Session>()
   openIds: string[] = []
+  closedIds: string[] = []
   activeId = ''
   loading = true
   connected = false
@@ -179,6 +180,9 @@ export class DocumentController {
       this.openIds = (Array.isArray(manifest?.openIds) ? manifest.openIds : []).filter(
         (x: any) => typeof x === 'string' && this.docs.has(x)
       )
+      this.closedIds = (Array.isArray(manifest?.closedIds) ? manifest.closedIds : []).filter(
+        (x: any) => typeof x === 'string' && this.docs.has(x) && !this.openIds.includes(x)
+      )
       this.activeId = this.openIds.includes(manifest?.activeId)
         ? manifest.activeId
         : (this.openIds[0] ?? '')
@@ -195,6 +199,7 @@ export class DocumentController {
     const value = {
       schema: 1,
       openIds: [...this.openIds],
+      closedIds: [...this.closedIds],
       activeId: this.activeId,
       preferences: { ...this.preferences }
     }
@@ -224,6 +229,7 @@ export class DocumentController {
     await this.flushActive()
     if (!this.docs.has(docId)) throw new AgentError('DOCUMENT_NOT_FOUND', '文档不存在')
     if (!this.openIds.includes(docId)) this.openIds.push(docId)
+    this.closedIds = this.closedIds.filter((id) => id !== docId)
     this.activeId = docId
     this.emit()
     await this.saveMetadata()
@@ -289,12 +295,20 @@ export class DocumentController {
     for (const d of docs) await this.import(d, inPlace)
   }
   async closeTab(docId: string) {
+    if (!this.openIds.includes(docId)) return
     if (this.activeId === docId) await this.flushActive()
     else await this.flush(docId)
     this.openIds = this.openIds.filter((x) => x !== docId)
+    this.closedIds = [...this.closedIds.filter((id) => id !== docId), docId]
     if (this.activeId === docId) this.activeId = this.openIds.at(-1) ?? ''
     this.emit()
     await this.saveMetadata()
+  }
+  async reopenClosedTab() {
+    const docId = this.closedIds.at(-1)
+    if (!docId) return null
+    await this.activate(docId)
+    return this.active
   }
   edit(docId: string, text: string, history?: EngineState) {
     const d = this.docs.get(docId)

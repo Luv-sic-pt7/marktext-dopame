@@ -38,6 +38,7 @@ type BlockNode = {
     replaceWith?: (newBlock: BlockNode, source: ChangeSource) => void;
     insertBefore?: (newBlock: BlockNode, ref: BlockNode, source: ChangeSource) => void;
     append?: (newBlock: BlockNode, source: ChangeSource) => void;
+    attachments?: { forEach: (callback: (attachment: BlockNode) => void) => void };
     update?: (value?: unknown, source?: ChangeSource) => void;
     blockName?: string;
     align?: string;
@@ -166,7 +167,16 @@ function drop(root: BlockNode, descent: JSONOpList, muya: Muya): BlockNode {
         else {
             switch (key) {
                 case 'checked': {
-                    ref?.update?.(comp.i, ChangeSource.Api);
+                    // Task checkboxes are attachments, outside the serialized children list.
+                    if (cur?.blockName === 'task-list-item') {
+                        cur.attachments?.forEach((attachment) => {
+                            if (attachment?.blockName === 'task-list-checkbox')
+                                attachment.update?.(comp.i, ChangeSource.Api);
+                        });
+                    }
+                    else {
+                        ref?.update?.(comp.i, ChangeSource.Api);
+                    }
                     break;
                 }
 

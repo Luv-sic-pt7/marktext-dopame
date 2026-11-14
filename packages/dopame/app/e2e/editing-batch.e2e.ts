@@ -10,8 +10,12 @@ mkdirSync(evidence, { recursive: true })
 const sourceText = (app: AppWindow) =>
   app.evaluate<string>('document.querySelector(".CodeMirror").CodeMirror.getValue()')
 const sourceSelection = (app: AppWindow) =>
-  app.evaluate<{ text: string; line: number }>(
-    '(()=>{const cm=document.querySelector(".CodeMirror").CodeMirror;return {text:cm.getSelection(),line:cm.getCursor("from").line}})()'
+  app.evaluate<{ text: string; line: number; from: number }>(
+    '(()=>{const cm=document.querySelector(".CodeMirror").CodeMirror;return {text:cm.getSelection(),line:cm.getCursor("from").line,from:cm.indexFromPos(cm.getCursor("from"))}})()'
+  )
+const richSelection = (app: AppWindow) =>
+  app.evaluate<{ text: string; paragraph: number; from: number }>(
+    '(()=>{const selection=getSelection();const node=selection?.anchorNode;const block=(node?.nodeType===1?node:node?.parentElement)?.closest("p.mu-paragraph");if(!selection||!node||!block)return {text:selection?.toString()??"",paragraph:-1,from:-1};const before=document.createRange();before.selectNodeContents(block);before.setEnd(node,selection.anchorOffset);return {text:selection.toString(),paragraph:Array.from(document.querySelectorAll(".mu-editor p.mu-paragraph")).indexOf(block),from:before.toString().length}})()'
   )
 
 async function createSource(app: AppWindow, text: string) {
@@ -78,6 +82,7 @@ test('find navigates both ways and single and all replacements each undo as one 
   await app.getByRole('button', { name: '下一处', exact: true }).click()
   await expect(result).toHaveText('2 / 3')
   expect((await sourceSelection(app)).text).toBe('中文')
+  expect((await sourceSelection(app)).from).toBe(original.indexOf('中文', 2))
   await app.getByRole('button', { name: '上一处', exact: true }).click()
   await expect(result).toHaveText('1 / 3')
   await app.getByRole('button', { name: '上一处', exact: true }).click()
@@ -109,25 +114,35 @@ test('rich search replaces the selected match and multi-paragraph replacement un
   await app.getByRole('button', { name: '富文本', exact: true }).click()
   await app.getByRole('button', { name: '查找', exact: true }).click()
   await app.getByRole('textbox', { name: '查找文本', exact: true }).fill('中文')
+  await expect(app.getByRole('textbox', { name: '查找文本', exact: true })).toBeFocused()
   const result = app.getByRole('status', { name: '查找结果', exact: true })
   const richText = () =>
     app.evaluate<string>(
       'Array.from(document.querySelectorAll(".mu-editor p.mu-paragraph")).map(p=>p.textContent).join("\\n\\n")'
     )
   await expect(result).toHaveText('1 / 3')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 0, from: 4 })
   await app.getByRole('button', { name: '下一处', exact: true }).click()
+  await expect(result).toHaveText('2 / 3')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 0, from: 9 })
+  await app.getByRole('button', { name: '下一处', exact: true }).click()
+  await expect(result).toHaveText('3 / 3')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 1, from: 4 })
+  await app.getByRole('button', { name: '上一处', exact: true }).click()
   await expect(result).toHaveText('2 / 3')
   await app.getByRole('button', { name: '上一处', exact: true }).click()
   await expect(result).toHaveText('1 / 3')
   await app.getByRole('button', { name: '下一处', exact: true }).click()
   await expect(result).toHaveText('2 / 3')
-  await app.getByRole('textbox', { name: '替换为', exact: true }).fill('替换')
+  await app.getByRole('textbox', { name: '替换为', exact: true }).fill('单处替换')
   await app.getByRole('button', { name: '替换当前', exact: true }).click()
-  await expect.poll(richText).toBe('第一段：中文 与 替换。\n\n第二段：中文 与 尾声。')
+  await expect.poll(richText).toBe('第一段：中文 与 单处替换。\n\n第二段：中文 与 尾声。')
+  await expect(result).toHaveText('2 / 2')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 1, from: 4 })
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect.poll(richText).toBe(original)
   await app.getByRole('button', { name: '全部替换', exact: true }).click()
-  await expect.poll(richText).toBe('第一段：替换 与 替换。\n\n第二段：替换 与 尾声。')
+  await expect.poll(richText).toBe('第一段：单处替换 与 单处替换。\n\n第二段：单处替换 与 尾声。')
   await expect(result).toHaveText('0 / 0')
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect.poll(richText).toBe(original)
@@ -165,6 +180,41 @@ test('live search refresh leaves continued typing at the source and rich editor 
   await app.keyboard.insertText(' 连续写入')
   await app.getByRole('button', { name: '源码', exact: true }).click()
   expect((await sourceText(app)).trimEnd()).toBe(sourceExpected + ' 匹配富文首轮 连续写入')
+})
+
+test('long rich search reveals each matching word inside the same paragraph', async ({ acde }) => {
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  const original = '中文 ' + '用于跨屏定位的长段落文本。'.repeat(120) + ' 中文'
+  await createSource(app, original)
+  await app.getByRole('button', { name: '富文本', exact: true }).click()
+  await app.getByRole('button', { name: '查找', exact: true }).click()
+  await app.getByRole('textbox', { name: '查找文本', exact: true }).fill('中文')
+  const result = app.getByRole('status', { name: '查找结果', exact: true })
+  await expect(result).toHaveText('1 / 2')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 0, from: 0 })
+  await app.getByRole('button', { name: '下一处', exact: true }).click()
+  await expect(result).toHaveText('2 / 2')
+  expect(await richSelection(app)).toEqual({
+    text: '中文',
+    paragraph: 0,
+    from: original.lastIndexOf('中文')
+  })
+  const currentMatchVisible = () =>
+    app.evaluate<boolean>(
+      '(()=>{const host=document.querySelector(".rich-host").getBoundingClientRect();const match=document.querySelector(".mu-editor .mu-highlight").getBoundingClientRect();return match.top>=host.top&&match.bottom<=host.bottom})()'
+    )
+  await expect.poll(currentMatchVisible).toBe(true)
+  expect(
+    await app.evaluate<number>('document.querySelector(".rich-host").scrollTop')
+  ).toBeGreaterThan(0)
+  await app.getByRole('button', { name: '上一处', exact: true }).click()
+  await expect(result).toHaveText('1 / 2')
+  expect(await richSelection(app)).toEqual({ text: '中文', paragraph: 0, from: 0 })
+  await expect.poll(currentMatchVisible).toBe(true)
+  expect((await app.console({ level: 'errors' })).entries).toEqual([])
+  expect((await app.network({ failed: true })).entries).toEqual([])
+  await app.screenshot({ path: join(evidence, 'native-batch2-rich-search-position.png') })
 })
 
 test('search options, regular expression captures and invalid patterns preserve editable content', async ({
@@ -242,6 +292,17 @@ test('find, replace, save, new and close shortcuts respect input focus and the c
   await find.press('escape')
   await expect(find).toHaveCount(0)
   await expect(source).toBeFocused()
+  await app.getByRole('button', { name: '富文本', exact: true }).click()
+  await app.locator('.mu-editor p.mu-paragraph').first().click()
+  await app.keyboard.press('ctrl+f')
+  await expect(find).toBeFocused()
+  await find.fill('正文')
+  await expect(find).toBeFocused()
+  await find.press('enter')
+  expect((await richSelection(app)).text).toBe('正文')
+  await expect(find).toBeFocused()
+  await find.press('escape')
+  await app.getByRole('button', { name: '源码', exact: true }).click()
   await source.press('ctrl+h')
   const replacement = app.getByRole('textbox', { name: '替换为', exact: true })
   await expect(replacement).toBeFocused()
@@ -269,7 +330,7 @@ test('strikethrough toggles in source and rich modes and remains undoable', asyn
   await expect.poll(() => sourceText(app)).toBe('~~' + text + '~~')
   await strike.click()
   await expect.poll(() => sourceText(app)).toBe(text)
-  await strike.click()
+  await app.keyboard.press('ctrl+shift+x')
   await app.getByRole('button', { name: '富文本', exact: true }).click()
   await expect(app.locator('.mu-editor del')).toContainText(text)
   await strike.click()

@@ -1,4 +1,4 @@
-import { cp, mkdir, chmod, readdir } from 'node:fs/promises'
+import { cp, mkdir, chmod, readdir, rm } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, resolve } from 'node:path'
@@ -42,6 +42,7 @@ const built = await Bun.build({
   naming: '[name].js'
 })
 if (!built.success) throw new AggregateError(built.logs, 'Client build failed')
+const declarationRoot = join(output, '.client-types')
 await command(process.execPath, [
   'node_modules/typescript/bin/tsc',
   '--ignoreConfig',
@@ -51,7 +52,9 @@ await command(process.execPath, [
   '--declaration',
   '--emitDeclarationOnly',
   '--outDir',
-  client,
+  declarationRoot,
+  '--rootDir',
+  resolve(portRoot, '..'),
   '--target',
   'ES2022',
   '--module',
@@ -62,6 +65,10 @@ await command(process.execPath, [
   '--types',
   'bun'
 ])
+// Sibling implementation imports must not move the public client's declaration entrypoints.
+for (const name of ['client.d.ts', 'http-transport.d.ts', 'protocol.d.ts'])
+  await cp(join(declarationRoot, 'dopame', name), join(client, name))
+await rm(declarationRoot, { recursive: true })
 for (const name of (await readdir(client)).filter((name) => name.endsWith('.d.ts'))) {
   const path = join(client, name)
   const source = await Bun.file(path).text()

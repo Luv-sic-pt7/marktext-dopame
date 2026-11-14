@@ -22,6 +22,12 @@ const tabs = computed(() => {
   return c.openIds.map((id) => c.docs.get(id)).filter(Boolean)
 })
 const headings = computed(() => outline(active.value?.text ?? ''))
+const selectionTick = ref(0)
+const tableContext = computed(() => {
+  ui.version
+  selectionTick.value
+  return adapter?.tableContext ?? null
+})
 const rich = ref<HTMLElement | null>(null),
   source = ref<HTMLElement | null>(null)
 const findInput = ref<HTMLInputElement | null>(null),
@@ -147,6 +153,12 @@ async function activate(id: string) {
 async function closeTab(id: string) {
   await c.closeTab(id)
 }
+const reopenClosedTab = () =>
+  run(async () => {
+    await c.reopenClosedTab()
+    await nextTick()
+    adapter?.focus()
+  })
 const searchOptions = () => ({
   isCaseSensitive: ui.caseSensitive,
   isWholeWord: ui.wholeWord,
@@ -204,6 +216,20 @@ function heading(level: number) {
 }
 function insertTable() {
   adapter?.insertTable()
+}
+function convertParagraph(event: Event) {
+  const menu = event.target as HTMLSelectElement
+  adapter?.convertParagraph(menu.value as Parameters<EditorAdapter['convertParagraph']>[0])
+  menu.value = ''
+}
+function indentList(outdent = false) {
+  adapter?.indentList(outdent)
+}
+function insertCodeBlock() {
+  adapter?.insertCodeBlock()
+}
+function tableCommand(command: Parameters<EditorAdapter['tableCommand']>[0]) {
+  adapter?.tableCommand(command)
 }
 function jumpTo(from: number) {
   adapter?.jumpTo(from)
@@ -287,6 +313,7 @@ function keyboard(event: KeyboardEvent) {
     else if (key === 'h' && !event.shiftKey) action = () => openSearch(true)
     else if (key === 'w' && !event.shiftKey && c.active)
       action = () => run(() => closeTab(c.activeId))
+    else if (key === 't' && event.shiftKey) action = reopenClosedTab
     else if (key === 'g')
       action = () => (ui.find ? search(event.shiftKey ? 'previous' : 'next') : openSearch())
     else if (
@@ -309,7 +336,13 @@ function keyboard(event: KeyboardEvent) {
 }
 onMounted(async () => {
   unsubscribe = c.onChange(() => ui.touch())
-  adapter = new EditorAdapter(c, rich.value!, source.value!, !!props.nativeSelection)
+  adapter = new EditorAdapter(
+    c,
+    rich.value!,
+    source.value!,
+    !!props.nativeSelection,
+    () => selectionTick.value++
+  )
   document.addEventListener('keydown', keyboard, true)
   await c.ready
   ui.touch()
@@ -331,6 +364,12 @@ onMounted(async () => {
         { id: 'save', label: '保存', shortcut: 'ctrl+s', onSelect: save },
         { id: 'save-as', label: '另存为', shortcut: 'ctrl+shift+s', onSelect: saveAs },
         { id: 'export', label: '导出 Markdown', onSelect: exportFile },
+        {
+          id: 'reopen-tab',
+          label: '恢复关闭标签',
+          shortcut: 'ctrl+shift+t',
+          onSelect: reopenClosedTab
+        },
         { type: 'separator' },
         { id: 'exit', label: '退出', onSelect: () => void run(requestClose) }
       ]
@@ -535,6 +574,15 @@ watch(
           </button>
         </div>
         <button class="add-tab" aria-label="新建文档" @click="newDoc">＋</button>
+        <button
+          class="reopen-tab"
+          aria-label="恢复关闭标签"
+          title="恢复关闭标签 · Ctrl+Shift+T"
+          :disabled="!c.closedIds.length"
+          @click="reopenClosedTab"
+        >
+          ↶
+        </button>
       </nav>
       <div v-if="c.notice" class="notice" :class="c.notice.kind" role="status">
         <span>{{ c.notice.message }}</span
@@ -584,10 +632,13 @@ watch(
           </div>
         </div>
         <p class="storage-location" aria-label="保存目标">
-          {{ storage
-          }}<template v-if="active?.lastExport">
-            · 上次导出 v{{ active.lastExport.revision }}：{{ active.lastExport.name }}</template
+          <span
+            >{{ storage
+            }}<template v-if="active?.lastExport">
+              · 上次导出 v{{ active.lastExport.revision }}：{{ active.lastExport.name }}</template
+            ></span
           >
+          <button class="storage-action" :disabled="!active" @click="saveAs">另存为</button>
         </p>
         <div class="format-toolbar" aria-label="编辑命令">
           <button
@@ -604,6 +655,20 @@ watch(
             重做
           </button>
           <span class="toolbar-separator"></span>
+          <select
+            aria-label="段落类型"
+            class="paragraph-menu"
+            value=""
+            :disabled="active?.readOnly || active?.mode === 'preview'"
+            @change="convertParagraph"
+          >
+            <option value="" disabled>段落</option>
+            <option value="paragraph">正文</option>
+            <option value="blockquote">引用</option>
+            <option value="ul-bullet">无序列表</option>
+            <option value="ol-order">有序列表</option>
+            <option value="ul-task">任务列表</option>
+          </select>
           <button
             aria-label="加粗"
             :disabled="active?.readOnly || active?.mode === 'preview'"
@@ -625,7 +690,7 @@ watch(
             @mousedown.prevent
             @click="format('del')"
           >
-            <s>S</s></button
+            <s>删除线</s></button
           ><button
             aria-label="行内代码"
             :disabled="active?.readOnly || active?.mode === 'preview'"
@@ -641,21 +706,103 @@ watch(
           >
             H1</button
           ><button
+            aria-label="代码块"
+            :disabled="active?.readOnly || active?.mode === 'preview'"
+            @mousedown.prevent
+            @click="insertCodeBlock"
+          >
+            代码块</button
+          ><button
+            aria-label="增加缩进"
+            :disabled="active?.readOnly || active?.mode === 'preview'"
+            @mousedown.prevent
+            @click="indentList()"
+          >
+            缩进</button
+          ><button
+            aria-label="减少缩进"
+            :disabled="active?.readOnly || active?.mode === 'preview'"
+            @mousedown.prevent
+            @click="indentList(true)"
+          >
+            减少缩进</button
+          ><button
             aria-label="插入表格"
             :disabled="active?.readOnly || active?.mode === 'preview'"
             @mousedown.prevent
-            @click="insertTable"
+            @click.stop="insertTable"
           >
             表格
           </button>
           <span class="toolbar-spacer"></span
           ><button
             :aria-pressed="ui.searchOpen"
+            title="查找与替换 · Ctrl+F"
             @click="ui.searchOpen ? closeSearch() : openSearch()"
           >
             查找</button
           ><button :aria-pressed="c.preferences.collaboration" @click="toggleCollaboration">
             协作任务
+          </button>
+        </div>
+        <div v-if="tableContext" class="table-tools" role="toolbar" aria-label="表格编辑">
+          <span class="table-position"
+            >表格 · 第 {{ tableContext.row + 1 }} 行，第 {{ tableContext.column + 1 }} 列</span
+          >
+          <button
+            aria-label="表格下方插入行"
+            @mousedown.prevent
+            @click="tableCommand('insert-row')"
+          >
+            添加行
+          </button>
+          <button
+            aria-label="删除表格行"
+            :disabled="!tableContext.canDeleteRow"
+            @mousedown.prevent
+            @click="tableCommand('delete-row')"
+          >
+            删除行
+          </button>
+          <button
+            aria-label="表格右侧插入列"
+            @mousedown.prevent
+            @click="tableCommand('insert-column')"
+          >
+            添加列
+          </button>
+          <button
+            aria-label="删除表格列"
+            :disabled="!tableContext.canDeleteColumn"
+            @mousedown.prevent
+            @click="tableCommand('delete-column')"
+          >
+            删除列
+          </button>
+          <span class="toolbar-separator"></span>
+          <button
+            aria-label="表格左对齐"
+            :aria-pressed="tableContext.align === 'left'"
+            @mousedown.prevent
+            @click="tableCommand('align-left')"
+          >
+            左对齐
+          </button>
+          <button
+            aria-label="表格居中对齐"
+            :aria-pressed="tableContext.align === 'center'"
+            @mousedown.prevent
+            @click="tableCommand('align-center')"
+          >
+            居中
+          </button>
+          <button
+            aria-label="表格右对齐"
+            :aria-pressed="tableContext.align === 'right'"
+            @mousedown.prevent
+            @click="tableCommand('align-right')"
+          >
+            右对齐
           </button>
         </div>
         <form
