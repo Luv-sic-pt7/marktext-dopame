@@ -24,6 +24,8 @@ const tabs = computed(() => {
 const headings = computed(() => outline(active.value?.text ?? ''))
 const rich = ref<HTMLElement | null>(null),
   source = ref<HTMLElement | null>(null)
+const findInput = ref<HTMLInputElement | null>(null),
+  replacementInput = ref<HTMLInputElement | null>(null)
 const titleDraft = ref(''),
   titleEditing = ref(false)
 const roots = ref<any[]>([]),
@@ -145,11 +147,47 @@ async function activate(id: string) {
 async function closeTab(id: string) {
   await c.closeTab(id)
 }
-function search() {
-  ui.matches = adapter?.search(ui.find) ?? 0
+const searchOptions = () => ({
+  isCaseSensitive: ui.caseSensitive,
+  isWholeWord: ui.wholeWord,
+  isRegexp: ui.regexp
+})
+function search(direction?: 'previous' | 'next', reveal = true) {
+  const result = adapter?.search(ui.find, searchOptions(), direction, reveal)
+  ui.matches = result?.count ?? 0
+  ui.matchIndex = result?.index ?? 0
+  ui.searchError = result?.error ?? ''
+}
+async function openSearch(replace = false) {
+  if (!c.active || diff.value || closeDialog.value) return
+  ui.searchOpen = true
+  await nextTick()
+  const input = replace ? replacementInput.value : findInput.value
+  input?.focus()
+  input?.select()
+}
+function closeSearch() {
+  adapter?.clearSearch()
+  ui.searchOpen = false
+  adapter?.focus()
+}
+function searchKey(event: KeyboardEvent) {
+  if (event.isComposing) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closeSearch()
+  } else if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+    event.preventDefault()
+    search(event.shiftKey ? 'previous' : 'next')
+  }
+}
+function replaceCurrent() {
+  adapter?.replace(ui.find, ui.replacement, searchOptions())
+  search()
 }
 function replaceAll() {
-  adapter?.replaceAll(ui.find, ui.replacement)
+  adapter?.replaceAll(ui.find, ui.replacement, searchOptions())
   search()
 }
 function undo() {
@@ -158,7 +196,7 @@ function undo() {
 function redo() {
   adapter?.redo()
 }
-function format(type: 'strong' | 'em' | 'inline_code') {
+function format(type: 'strong' | 'em' | 'inline_code' | 'del') {
   adapter?.format(type)
 }
 function heading(level: number) {
@@ -236,9 +274,43 @@ async function saveAndExit() {
 function onActivate() {
   void c.checkExternal()
 }
+function keyboard(event: KeyboardEvent) {
+  if (event.isComposing || c.composing || event.altKey || diff.value || closeDialog.value) return
+  const modified = event.ctrlKey || event.metaKey
+  const key = event.key.toLowerCase()
+  let action: (() => any) | undefined
+  if (modified) {
+    if (key === 'n' && !event.shiftKey) action = newDoc
+    else if (key === 'o' && !event.shiftKey) action = open
+    else if (key === 's') action = event.shiftKey ? saveAs : save
+    else if (key === 'f' && !event.shiftKey) action = () => openSearch()
+    else if (key === 'h' && !event.shiftKey) action = () => openSearch(true)
+    else if (key === 'w' && !event.shiftKey && c.active)
+      action = () => run(() => closeTab(c.activeId))
+    else if (key === 'g')
+      action = () => (ui.find ? search(event.shiftKey ? 'previous' : 'next') : openSearch())
+    else if (
+      event.target instanceof Node &&
+      (rich.value?.contains(event.target) || source.value?.contains(event.target))
+    ) {
+      if (key === 'z') action = event.shiftKey ? redo : undo
+      else if (key === 'y' && !event.shiftKey) action = redo
+      else if (key === 'b' && !event.shiftKey) action = () => format('strong')
+      else if (key === 'i' && !event.shiftKey) action = () => format('em')
+      else if (key === 'x' && event.shiftKey) action = () => format('del')
+    }
+  } else if (key === 'f3') {
+    action = () => (ui.find ? search(event.shiftKey ? 'previous' : 'next') : openSearch())
+  } else if (key === 'escape' && ui.searchOpen) action = closeSearch
+  if (!action) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  void action()
+}
 onMounted(async () => {
   unsubscribe = c.onChange(() => ui.touch())
   adapter = new EditorAdapter(c, rich.value!, source.value!, !!props.nativeSelection)
+  document.addEventListener('keydown', keyboard, true)
   await c.ready
   ui.touch()
   await refreshRoots()
@@ -267,16 +339,21 @@ onMounted(async () => {
       id: 'edit',
       label: '编辑',
       items: [
+        {
+          id: 'close-tab',
+          label: '关闭标签',
+          shortcut: 'ctrl+w',
+          onSelect: () => c.active && run(() => closeTab(c.activeId))
+        },
         { id: 'undo', label: '撤销', onSelect: undo },
         { id: 'redo', label: '重做', onSelect: redo },
         {
           id: 'find',
           label: '查找与替换',
           shortcut: 'ctrl+f',
-          onSelect: () => {
-            ui.searchOpen = true
-          }
-        }
+          onSelect: () => openSearch()
+        },
+        { id: 'replace', label: '替换', shortcut: 'ctrl+h', onSelect: () => openSearch(true) }
       ]
     },
     {
@@ -320,10 +397,29 @@ watch(
   }
 )
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', keyboard, true)
   unsubscribe()
   if (activityTimer) clearInterval(activityTimer)
   adapter?.destroy()
 })
+watch(
+  [
+    () => ui.searchOpen,
+    () => ui.find,
+    () => ui.caseSensitive,
+    () => ui.wholeWord,
+    () => ui.regexp,
+    () => active.value?.id,
+    () => active.value?.mode,
+    () => active.value?.text
+  ],
+  (values, previous) => {
+    const reveal = values.slice(0, -1).some((value, index) => value !== previous[index])
+    if (ui.searchOpen) search(undefined, reveal)
+    else adapter?.clearSearch(false)
+  },
+  { flush: 'post' }
+)
 </script>
 
 <template>
@@ -523,6 +619,14 @@ onBeforeUnmount(() => {
           >
             <em>I</em></button
           ><button
+            aria-label="删除线"
+            title="删除线 · Ctrl+Shift+X"
+            :disabled="active?.readOnly || active?.mode === 'preview'"
+            @mousedown.prevent
+            @click="format('del')"
+          >
+            <s>S</s></button
+          ><button
             aria-label="行内代码"
             :disabled="active?.readOnly || active?.mode === 'preview'"
             @mousedown.prevent
@@ -545,23 +649,73 @@ onBeforeUnmount(() => {
             表格
           </button>
           <span class="toolbar-spacer"></span
-          ><button @click="ui.searchOpen = !ui.searchOpen">查找</button
+          ><button
+            :aria-pressed="ui.searchOpen"
+            @click="ui.searchOpen ? closeSearch() : openSearch()"
+          >
+            查找</button
           ><button :aria-pressed="c.preferences.collaboration" @click="toggleCollaboration">
             协作任务
           </button>
         </div>
-        <form v-if="ui.searchOpen" class="search-bar" @submit.prevent="search">
-          <label>查找<input v-model="ui.find" aria-label="查找文本" /></label
-          ><label>替换<input v-model="ui.replacement" aria-label="替换为" /></label
-          ><button type="submit">下一处</button
-          ><button
-            type="button"
-            :disabled="active?.readOnly || active?.mode === 'preview' || !ui.find"
-            @click="replaceAll"
-          >
-            全部替换</button
-          ><span class="num">{{ ui.matches }} 处</span
-          ><button type="button" aria-label="关闭查找" @click="ui.searchOpen = false">×</button>
+        <form
+          v-if="ui.searchOpen"
+          class="search-bar"
+          aria-label="查找与替换"
+          @submit.prevent="search('next')"
+          @keydown="searchKey"
+        >
+          <div class="search-row">
+            <label class="search-field"
+              >查找<input
+                ref="findInput"
+                v-model="ui.find"
+                aria-label="查找文本"
+                autocomplete="off"
+                :aria-invalid="!!ui.searchError"
+            /></label>
+            <div class="search-actions">
+              <button type="button" :disabled="!ui.matches" @click="search('previous')">
+                上一处
+              </button>
+              <button type="submit" :disabled="!ui.matches">下一处</button>
+              <output class="num" aria-label="查找结果" aria-live="polite"
+                >{{ ui.matchIndex }} / {{ ui.matches }}</output
+              >
+              <button type="button" aria-label="关闭查找" @click="closeSearch">×</button>
+            </div>
+          </div>
+          <div class="search-row">
+            <label class="search-field"
+              >替换<input
+                ref="replacementInput"
+                v-model="ui.replacement"
+                aria-label="替换为"
+                autocomplete="off"
+            /></label>
+            <div class="search-actions">
+              <button
+                type="button"
+                :disabled="active?.readOnly || active?.mode === 'preview' || !ui.matches"
+                @click="replaceCurrent"
+              >
+                替换当前
+              </button>
+              <button
+                type="button"
+                :disabled="active?.readOnly || active?.mode === 'preview' || !ui.matches"
+                @click="replaceAll"
+              >
+                全部替换
+              </button>
+            </div>
+          </div>
+          <div class="search-options">
+            <label><input v-model="ui.caseSensitive" type="checkbox" />区分大小写</label>
+            <label><input v-model="ui.wholeWord" type="checkbox" />全词匹配</label>
+            <label><input v-model="ui.regexp" type="checkbox" />正则表达式</label>
+          </div>
+          <p v-if="ui.searchError" class="search-error" role="alert">{{ ui.searchError }}</p>
         </form>
         <div class="writing-area">
           <section class="editor-content" aria-label="文档编辑区域">
@@ -577,7 +731,7 @@ onBeforeUnmount(() => {
               :style="{ paddingLeft: (h.level - 1) * 10 + 'px' }"
               @click="jumpTo(h.from)"
             >
-              {{ h.text }}
+              {{ h.text || '未命名标题' }}
             </button>
           </aside>
         </div>

@@ -6,6 +6,11 @@ export const useUiStore = defineStore('marktext-workspace-view', {
     find: '',
     replacement: '',
     matches: 0,
+    matchIndex: 0,
+    searchError: '',
+    caseSensitive: false,
+    wholeWord: false,
+    regexp: false,
     mobilePanel: 'editor' as 'editor' | 'files' | 'tasks'
   }),
   actions: {

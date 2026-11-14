@@ -490,10 +490,21 @@ input {
 }
 .search-bar {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
+}
+.search-row,
+.search-actions,
+.search-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.search-field {
+  flex: 1;
 }
 .search-bar label {
   display: flex;
@@ -502,13 +513,38 @@ input {
   font-size: 12px;
   min-width: 0;
 }
-.search-bar input {
-  width: 135px;
+.search-field input {
+  flex: 1;
+  min-width: 0;
   padding: 4px 7px;
 }
+.search-options {
+  gap: 16px;
+}
+.search-options input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.search-bar output {
+  min-width: 48px;
+  color: var(--muted);
+  text-align: center;
+}
 .search-bar button,
-.search-bar span {
+.search-bar output {
   font-size: 12px;
+}
+.search-error {
+  margin: 0;
+  color: var(--negative);
+  font-size: 12px;
+}
+.CodeMirror .search-match {
+  background: var(--active);
+}
+.CodeMirror .search-current {
+  background: var(--active);
+  outline: 1px solid var(--accent);
 }
 .empty-workspace {
   flex: 1;
@@ -789,8 +825,11 @@ input {
     flex-wrap: wrap;
     padding: 8px;
   }
-  .search-bar input {
-    width: 100px;
+  .search-field {
+    flex-basis: 100%;
+  }
+  .search-options {
+    gap: 10px;
   }
   .statusbar {
     gap: 10px;

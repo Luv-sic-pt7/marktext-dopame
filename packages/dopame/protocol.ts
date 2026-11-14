@@ -1,4 +1,6 @@
 import Ajv from 'ajv/dist/2020.js'
+import { Lexer, Tokenizer, type Tokens } from 'marked'
+import getFrontMatterInfo from '../muya/src/utils/marked/frontMatter'
 
 export const PROTOCOL = 'marktext-agent/1' as const
 export const LIMITS = {
@@ -391,21 +393,45 @@ export function patchText(source: string, changes: Edit[]): string {
   for (const e of sorted.reverse()) result = result.slice(0, e.from) + e.text + result.slice(e.to)
   return boundedText(result, '修改结果')
 }
+/** Top-level document headings; ranges include Markdown markers and exclude the final line ending. */
 export function outline(text: string) {
   const result: { level: number; text: string; from: number; to: number }[] = []
-  let from = 0
-  let fence = ''
-  for (const line of text.split('\n')) {
-    const marker = /^\s*(`{3,}|~{3,})/.exec(line)
-    if (marker) {
-      if (!fence) fence = marker[1][0]
-      else if (marker[1][0] === fence) fence = ''
-      from += line.length + 1
-      continue
+  const crlfEnds: number[] = []
+  const source = text.replace(/\r\n?/g, (newline, offset: number) => {
+    if (newline.length === 2) crlfEnds.push(offset - crlfEnds.length + 1)
+    return '\n'
+  })
+  const { src: body } = getFrontMatterInfo(source)
+  const starts = new WeakMap<Tokens.Heading, number>()
+  class OutlineTokenizer extends Tokenizer {
+    heading(src: string) {
+      const token = super.heading(src)
+      if (token) starts.set(token, source.length - src.length)
+      return token
     }
-    const h = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
-    if (h && !fence) result.push({ level: h[1].length, text: h[2], from, to: from + line.length })
-    from += line.length + 1
+    lheading(src: string) {
+      const token = super.lheading(src)
+      if (token) starts.set(token, source.length - src.length)
+      return token
+    }
+  }
+  let removedCarriages = 0
+  const sourceOffset = (offset: number) => {
+    while (removedCarriages < crlfEnds.length && crlfEnds[removedCarriages] <= offset)
+      removedCarriages++
+    return offset + removedCarriages
+  }
+  // Tokenizer ranges use normalized newlines; the API and editor use original UTF-16 offsets.
+  for (const token of Lexer.lex(body, { gfm: true, tokenizer: new OutlineTokenizer() })) {
+    if (token.type !== 'heading') continue
+    const heading = token as Tokens.Heading
+    const from = starts.get(heading)!
+    result.push({
+      level: heading.depth,
+      text: heading.text.replace(/\n/g, ' '),
+      from: sourceOffset(from),
+      to: sourceOffset(from + heading.raw.replace(/\n+$/, '').length)
+    })
   }
   return result
 }

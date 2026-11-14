@@ -1,7 +1,7 @@
 import CodeMirror from 'codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/gfm/gfm'
-import 'codemirror/addon/search/searchcursor'
+import { matchString } from '@muyajs/core/utils/search.ts'
 import {
   Muya,
   zhCN,
@@ -10,7 +10,9 @@ import {
   TableColumnToolbar,
   TableRowColumMenu,
   ParagraphFrontButton,
-  ParagraphFrontMenu
+  ParagraphFrontMenu,
+  ParagraphQuickInsertMenu,
+  type ISearchOption
 } from '@muyajs/core'
 import {
   DocumentController,
@@ -21,7 +23,52 @@ import {
 } from './document-controller'
 import { setImageContext, clearImageContext } from './image-platform'
 
+class AccessibleQuickInsertMenu extends ParagraphQuickInsertMenu {
+  protected override activeEleScrollIntoView(element: HTMLElement) {
+    // A smooth scroll to the old rows can outlive the filter render in acdert.
+    element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }
+  override render() {
+    super.render()
+    this.container?.setAttribute('role', 'menu')
+    this.container?.setAttribute('aria-label', '插入段落')
+    this.scrollElement?.querySelectorAll<HTMLElement>('.item').forEach((item) => {
+      item.setAttribute('role', 'menuitem')
+      item.setAttribute('aria-label', item.querySelector('.big-title')?.textContent ?? '')
+    })
+    if (this.container) this.container.scrollTop = 0
+  }
+  override step(direction: 'previous' | 'next') {
+    if (this.renderArray.length) super.step(direction)
+  }
+  override selectItem(item: Parameters<ParagraphQuickInsertMenu['selectItem']>[0]) {
+    if (!this.renderArray.includes(item)) return
+    super.selectItem(item)
+    const selection = this.muya.editor.selection.getSelection()
+    if (selection) {
+      ;(selection.focus.block.domNode as HTMLElement).focus({ preventScroll: true })
+      this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
+    }
+  }
+}
+
 let pluginsRegistered = false
+export interface SearchResult {
+  index: number
+  count: number
+  error: string
+}
+
+function searchPattern(query: string, options: ISearchOption) {
+  if (!options.isWholeWord) return { query, options }
+  const pattern = options.isRegexp ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const word = '[\\p{L}\\p{N}\\p{M}_]'
+  return {
+    query: `(?<!${word})(?:${pattern})(?!${word})`,
+    options: { ...options, isWholeWord: false, isRegexp: true }
+  }
+}
+
 export class EditorAdapter implements EditorBridge {
   readonly muya: Muya
   readonly source: CodeMirror.Editor
@@ -31,6 +78,9 @@ export class EditorAdapter implements EditorBridge {
   private loading = false
   private richBaseline = ''
   private imageScope = ''
+  private searchKey = ''
+  private searchIndex = -1
+  private searchMarks: CodeMirror.TextMarker[] = []
   private imageRefresh: ReturnType<typeof setTimeout> | null = null
   private nativeKey = (event: KeyboardEvent) => {
     if (
@@ -105,7 +155,8 @@ export class EditorAdapter implements EditorBridge {
         TableColumnToolbar,
         TableRowColumMenu,
         ParagraphFrontButton,
-        ParagraphFrontMenu
+        ParagraphFrontMenu,
+        AccessibleQuickInsertMenu
       ])
         Muya.use(p)
       pluginsRegistered = true
@@ -203,6 +254,7 @@ export class EditorAdapter implements EditorBridge {
     }
   }
   load(d: Session) {
+    this.clearSearch(false)
     this.loading = true
     try {
       const same = this.currentId === d.id,
@@ -336,24 +388,82 @@ export class EditorAdapter implements EditorBridge {
     else this.muya.focus()
   }
   undo() {
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview'
+    )
+      return
     if (this.currentMode === 'source') this.source.undo()
     else this.muya.undo()
     this.flush()
   }
   redo() {
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview'
+    )
+      return
     if (this.currentMode === 'source') this.source.redo()
     else this.muya.redo()
     this.flush()
   }
-  format(type: 'strong' | 'em' | 'inline_code') {
-    if (this.currentMode === 'preview') return
+  format(type: 'strong' | 'em' | 'inline_code' | 'del') {
+    if (this.currentMode === 'preview' || this.controller.active?.readOnly) return
     if (this.currentMode === 'source') {
-      const marker = type === 'strong' ? '**' : type === 'em' ? '*' : '`'
-      const selection = this.source.getSelection()
-      this.source.replaceSelection(marker + selection + marker, 'around', '+format')
-    } else this.muya.format(type === 'inline_code' ? 'inline_code' : type)
+      if (type === 'del') this.toggleSourceStrikethrough()
+      else {
+        const marker = type === 'strong' ? '**' : type === 'em' ? '*' : '`'
+        const selection = this.source.getSelection()
+        this.source.replaceSelection(marker + selection + marker, 'around', '+format')
+      }
+    } else {
+      this.muya.flush()
+      const history = this.muya.editor.history
+      history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+      this.muya.format(type)
+      this.muya.flush()
+      history.cutoff()
+    }
     this.flush()
     this.focus()
+  }
+  private toggleSourceStrikethrough() {
+    const text = this.source.getValue()
+    const from = this.source.indexFromPos(this.source.getCursor('from'))
+    const to = this.source.indexFromPos(this.source.getCursor('to'))
+    const selected = text.slice(from, to)
+    let start = from,
+      end = to,
+      replacement = '~~' + selected + '~~',
+      selectionStart = from + 2,
+      selectionLength = selected.length
+    if (selected.startsWith('~~') && selected.endsWith('~~') && selected.length >= 4) {
+      replacement = selected.slice(2, -2)
+      selectionStart = from
+      selectionLength = replacement.length
+    } else if (text.slice(from - 2, from) === '~~' && text.slice(to, to + 2) === '~~') {
+      start -= 2
+      end += 2
+      replacement = selected
+      selectionStart = start
+    }
+    const doc = this.source.getDoc()
+    doc.changeGeneration(true)
+    this.source.operation(() => {
+      this.source.replaceRange(
+        replacement,
+        this.source.posFromIndex(start),
+        this.source.posFromIndex(end),
+        '+format'
+      )
+      this.source.setSelection(
+        this.source.posFromIndex(selectionStart),
+        this.source.posFromIndex(selectionStart + selectionLength)
+      )
+    })
+    doc.changeGeneration(true)
   }
   insertTable() {
     if (this.currentMode === 'preview') return
@@ -382,30 +492,127 @@ export class EditorAdapter implements EditorBridge {
     this.flush()
     this.focus()
   }
-  search(query: string) {
-    if (!query) return 0
-    const d = this.controller.active
-    if (!d) return 0
-    const count = d.text.split(query).length - 1
-    if (this.currentMode === 'source') {
-      let c = this.source.getSearchCursor(query, this.source.getCursor())
-      if (!c.findNext()) {
-        c = this.source.getSearchCursor(query, { line: 0, ch: 0 })
-        if (!c.findNext()) return count
-      }
-      this.source.setSelection(c.from(), c.to())
-      this.source.scrollIntoView({ from: c.from(), to: c.to() }, 60)
-    } else this.muya.search(query)
-    return count
+  private clearSearchMarks() {
+    for (const mark of this.searchMarks) mark.clear()
+    this.searchMarks = []
   }
-  replaceAll(query: string, replacement: string) {
+  clearSearch(restoreSelection = true) {
+    this.clearSearchMarks()
+    this.muya.search('', { selectHighlight: restoreSelection })
+    this.searchKey = ''
+    this.searchIndex = -1
+  }
+  search(
+    query: string,
+    options: ISearchOption = {},
+    direction?: 'previous' | 'next',
+    reveal = true
+  ): SearchResult {
+    this.flush()
     const d = this.controller.active
-    if (!query || !d || d.readOnly || d.mode === 'preview') return
-    const next = d.text.split(query).join(replacement)
-    if (this.currentMode === 'source') this.replaceSource(next)
-    else this.muya.replaceContent(next)
+    if (!query || !d) {
+      this.clearSearch(false)
+      return { index: 0, count: 0, error: '' }
+    }
+    if (options.isRegexp) {
+      try {
+        new RegExp(query)
+      } catch {
+        this.clearSearch(false)
+        return { index: 0, count: 0, error: '正则表达式无效' }
+      }
+    }
+    const key = JSON.stringify([d.id, d.mode, query, options])
+    const changed = key !== this.searchKey
+    this.searchKey = key
+    if (changed) this.searchIndex = 0
+    const pattern = searchPattern(query, options)
+    if (this.currentMode === 'source') {
+      const matches = matchString(this.source.getValue(), pattern.query, pattern.options)
+      const count = matches.length
+      if (this.searchIndex < 0) this.searchIndex = 0
+      if (count && direction && !changed) this.searchIndex += direction === 'next' ? 1 : -1
+      this.searchIndex = count ? (this.searchIndex + count) % count : -1
+      this.clearSearchMarks()
+      this.source.operation(() => {
+        matches.forEach((match, index) => {
+          this.searchMarks.push(
+            this.source.markText(
+              this.source.posFromIndex(match.index),
+              this.source.posFromIndex(match.index + match.match.length),
+              { className: index === this.searchIndex ? 'search-current' : 'search-match' }
+            )
+          )
+        })
+      })
+      const current = matches[this.searchIndex]
+      if (current && reveal) {
+        const from = this.source.posFromIndex(current.index)
+        const to = this.source.posFromIndex(current.index + current.match.length)
+        this.source.setSelection(from, to)
+        this.source.scrollIntoView({ from, to }, 60)
+      }
+      return { index: this.searchIndex + 1, count, error: '' }
+    }
+    const selection = reveal ? null : this.muya.editor.selection.getSelection()
+    const result = this.muya.search(pattern.query, {
+      ...pattern.options,
+      highlightIndex: this.searchIndex
+    })
+    if (direction && !changed) result.find(direction)
+    this.searchIndex = result.index
+    if (selection) this.muya.editor.selection.setSelection(selection.anchor, selection.focus)
+    const current = result.matches[result.index]
+    if (current && reveal)
+      (current.block.domNode as HTMLElement)?.scrollIntoView({ block: 'nearest' })
+    return { index: result.index + 1, count: result.matches.length, error: '' }
+  }
+  replace(query: string, replacement: string, options: ISearchOption = {}, single = true) {
+    const d = this.controller.active
+    if (!d || d.readOnly || d.mode === 'preview' || this.controller.composing) return
+    const result = this.search(query, options)
+    if (!result.count || result.error) return result
+    const index = this.searchIndex
+    if (this.currentMode === 'source') {
+      const pattern = searchPattern(query, options)
+      const matches = matchString(this.source.getValue(), pattern.query, pattern.options)
+      const selected = single ? [matches[index]] : matches
+      this.source.getDoc().changeGeneration(true)
+      this.source.operation(() => {
+        for (const match of [...selected].reverse()) {
+          let value = replacement
+          if (options.isRegexp) {
+            const groups = [match.match, ...match.subMatches]
+            value = replacement.replace(/(?<!\\)\$(0|[1-9]\d?)/g, (reference, digits: string) => {
+              const group = Number(digits)
+              if (group < groups.length) return groups[group] ?? ''
+              const leading = Number(digits[0])
+              return leading < groups.length ? (groups[leading] ?? '') + digits.slice(1) : reference
+            })
+          }
+          this.source.replaceRange(
+            value,
+            this.source.posFromIndex(match.index),
+            this.source.posFromIndex(match.index + match.match.length),
+            '+replace'
+          )
+        }
+      })
+      this.source.getDoc().changeGeneration(true)
+    } else {
+      // Separate replacement from typing, and keep a multi-block replacement in one undo step.
+      this.muya.flush()
+      this.muya.editor.history.cutoff()
+      this.muya.replace(replacement, { ...options, isWholeWord: false, isSingle: single })
+      this.muya.flush()
+      this.muya.editor.history.cutoff()
+    }
     this.commit()
-    this.focus()
+    this.searchIndex = index
+    return this.search(query, options)
+  }
+  replaceAll(query: string, replacement: string, options: ISearchOption = {}) {
+    return this.replace(query, replacement, options, false)
   }
   jumpTo(from: number) {
     const d = this.controller.active
@@ -423,6 +630,7 @@ export class EditorAdapter implements EditorBridge {
     }
   }
   destroy() {
+    this.clearSearch(false)
     this.richHost.removeEventListener('keydown', this.nativeKey, true)
     clearImageContext()
     if (this.imageRefresh) clearTimeout(this.imageRefresh)
