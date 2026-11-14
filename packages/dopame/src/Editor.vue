@@ -12,7 +12,7 @@ import { editorText, outline } from './document'
 import { loadDocumentImage, type Resource } from './files'
 import { attachNativeSelection } from './nativeSelection'
 
-const props = defineProps<{ text: string; resource: Resource | null; mode: 'edit' | 'source' | 'read'; active: boolean }>()
+const props = defineProps<{ text: string; resource: Resource | null; mode: 'edit' | 'source' | 'read'; active: boolean; blocked?: boolean }>()
 const emit = defineEmits<{ change: [text: string]; outline: [items: { lvl: number; content: string; slug: string }[]] }>()
 const richHost = ref<HTMLElement>()
 const sourceHost = ref<HTMLElement>()
@@ -22,7 +22,32 @@ let syncing = false
 let richText = ''
 let sourceText = ''
 let searchText = ''
+let composing = false
 let detachSelection: (() => void) | undefined
+
+function isInputBusy() {
+  return composing
+}
+
+function compositionStart() {
+  composing = true
+}
+
+function compositionEnd() {
+  composing = false
+}
+
+function protectInput(event: Event) {
+  if (!props.blocked) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+}
+
+function syncReadOnly() {
+  if (!muya || !source) return
+  muya.setReadOnly(props.mode === 'read' || !!props.blocked)
+  source.setOption('readOnly', props.blocked ? 'nocursor' : false)
+}
 
 for (const plugin of [InlineFormatToolbar, ParagraphFrontButton, ParagraphFrontMenu,
   ParagraphQuickInsertMenu, TableChessboard, TableColumnToolbar, TableDragBar,
@@ -55,13 +80,14 @@ async function syncMode() {
       muya.replaceContent(text)
       richText = text
     }
-    muya.setReadOnly(props.mode === 'read')
+    muya.setReadOnly(props.mode === 'read' || !!props.blocked)
     muya.domNode.setAttribute('aria-label', props.mode === 'read' ? 'Markdown 阅读预览' : 'Markdown 编辑器')
     emit('outline', muya.getTOC())
   }
   syncing = false
   await nextTick()
-  if (props.mode === 'source') { source.refresh(); if (props.active) source.focus() }
+  syncReadOnly()
+  if (props.mode === 'source') { source.refresh(); if (props.active && !props.blocked) source.focus() }
 }
 
 function flush() {
@@ -69,17 +95,19 @@ function flush() {
 }
 
 function undo() {
+  if (props.blocked || isInputBusy()) return
   if (props.mode === 'source') { source.undo(); source.focus() }
   else if (props.mode === 'edit') { muya.flush(); muya.undo(); muya.focus() }
 }
 
 function redo() {
+  if (props.blocked || isInputBusy()) return
   if (props.mode === 'source') { source.redo(); source.focus() }
   else if (props.mode === 'edit') { muya.redo(); muya.focus() }
 }
 
 function command(action: string) {
-  if (props.mode !== 'edit') return
+  if (props.mode !== 'edit' || props.blocked || isInputBusy()) return
   muya.flush()
   if (action.startsWith('format:')) muya.format(action.slice(7))
   else if (action.startsWith('paragraph:')) muya.updateParagraph(action.slice(10))
@@ -92,6 +120,7 @@ function command(action: string) {
 }
 
 function find(text: string, backwards = false) {
+  if (props.blocked) return
   searchText = text
   if (props.mode !== 'source') {
     muya.search(text, { isRegexp: false })
@@ -111,7 +140,7 @@ function find(text: string, backwards = false) {
 }
 
 function replace(text: string, all: boolean) {
-  if (!searchText || props.mode === 'read') return
+  if (!searchText || props.mode === 'read' || props.blocked || isInputBusy()) return
   if (props.mode !== 'source') {
     muya.replace(text, { isSingle: !all, isRegexp: false })
     return
@@ -125,6 +154,7 @@ function replace(text: string, all: boolean) {
 }
 
 function reveal(slug: string, index: number) {
+  if (props.blocked) return
   if (props.mode === 'source') {
     const heading = outline(source.getValue())[index]
     if (!heading) return
@@ -158,18 +188,22 @@ onMounted(() => {
   void syncMode()
 })
 watch(() => props.mode, syncMode)
+watch(() => props.blocked, syncReadOnly, { flush: 'sync' })
 watch(() => props.resource, () => muya?.invalidateImageCache())
 watch(() => props.active, async active => {
   if (!active) return
   await nextTick()
-  if (props.mode === 'source') { source.refresh(); if (props.active) source.focus() }
+  if (props.mode === 'source') { source.refresh(); if (props.active && !props.blocked) source.focus() }
 })
 onBeforeUnmount(() => { detachSelection?.(); muya?.destroy() })
-defineExpose({ flush, undo, redo, command, find, replace, reveal })
+defineExpose({ flush, undo, redo, command, find, replace, reveal, isInputBusy })
 </script>
 
 <template>
-  <section class="editor-panel">
+  <section class="editor-panel" :aria-busy="blocked || undefined"
+    @compositionstart.capture="compositionStart" @compositionend.capture="compositionEnd"
+    @beforeinput.capture="protectInput"
+    @paste.capture="protectInput" @cut.capture="protectInput" @drop.capture="protectInput">
     <div v-show="mode !== 'source'" ref="richHost" class="rich-editor" />
     <div v-show="mode === 'source'" ref="sourceHost" class="source-editor" />
   </section>

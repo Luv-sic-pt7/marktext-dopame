@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createDocument, editorText, isDirty, outline, updateDocument } from '../src/document.ts'
+import { DocumentController } from '../src/domain/documentController.ts'
 
 test('outline records source lines and excludes fenced headings', () => {
   const text = '```md\n# fake\n```\n\n# real\n\n~~~\n## also fake\n~~~\n## next'
@@ -36,4 +37,24 @@ test('completion of an earlier save does not clear newer input', () => {
 
 test('Setext headings and fence lengths use Markdown block parsing', () => {
   assert.deepEqual(outline('Title\n=====\n\n````md\n```\n# fake\n````\n\n## Real').map(({ content, line }) => ({ content, line })), [{ content: 'Title', line: 0 }, { content: 'Real', line: 8 }])
+})
+
+test('unedited mixed line endings survive editor synchronization byte for byte', () => {
+  const raw = '\uFEFF# First\r\n\nsecond\r\n'
+  const tab = createDocument('mixed.md', raw)
+  updateDocument(tab, editorText(raw))
+  assert.equal(tab.text, raw)
+  assert.equal(tab.revision, 0)
+})
+
+test('controller acknowledges only the captured save when newer input exists', () => {
+  const controller = new DocumentController()
+  const tab = createDocument('draft.md', 'before')
+  const snapshot = controller.captureSave(tab)
+  controller.update(tab, 'after')
+  const resource = { kind: 'root', root: 'private', path: 'saved.md', version: '2' }
+  controller.acknowledgeSave(tab, snapshot, resource, 'saved.md')
+  assert.equal(tab.savedText, 'before')
+  assert.equal(tab.text, 'after')
+  assert.equal(isDirty(tab), true)
 })

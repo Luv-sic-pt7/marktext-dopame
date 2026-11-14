@@ -1,0 +1,28 @@
+{
+  "name": "marktext-dopame-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "build:inputs": "bun scripts/build.ts --inputs-only",
+    "check": "acde check desktop",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test test/*.test.mjs",
+    "test:package": "bun scripts/verify-packages.ts",
+    "test:preview": "bun scripts/test-preview-ui.ts",
+    "test:e2e": "bun scripts/test-native.ts"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "marked": "18.2.0"
+  },
+  "devDependencies": {
+    "@dopame/acde-api": "https://calbin-1318886512.cos.ap-beijing.myqcloud.com/pkgs/acdert/0.0.9/acde-api-0.0.9.tar.gz",
+    "@types/node": "26.6.5",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4"
+  }
+}

@@ -60,6 +60,7 @@
     "eslint-plugin-i18n-json": "^4.0.1",
     "eslint-plugin-jsonc": "^3.4.2",
     "eslint-plugin-vue": "^10.12.0",
+    "globals": "17.13.0",
     "husky": "^9.1.7",
     "license-checker": "^25.0.1",
     "lint-staged": "^17.6.0",

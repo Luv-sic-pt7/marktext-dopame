@@ -1,5 +1,9 @@
 import type { Resource } from './files'
 import { Lexer } from 'marked'
+import { DocumentController } from './domain/documentController.ts'
+import { normalizeMarkdown } from './domain/collaboration.ts'
+
+export const documentController = new DocumentController()
 
 export interface DocumentTab {
   id: string
@@ -21,14 +25,11 @@ export function createDocument(name: string, text = '', resource: Resource | nul
 }
 
 export function editorText(text: string) {
-  return text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
+  return normalizeMarkdown(text)
 }
 
 export function updateDocument(tab: DocumentTab, markdown: string) {
-  const text = (tab.bom ? '\uFEFF' : '') + editorText(markdown).replace(/\n/g, tab.eol)
-  if (text === tab.text) return
-  tab.text = text
-  tab.revision++
+  documentController.update(tab, markdown)
 }
 
 export function isDirty(tab: DocumentTab) {

@@ -3,9 +3,11 @@ import { computed, markRaw, nextTick, onMounted, reactive, ref, watch } from 'vu
 import { window as appWindow } from 'acde:window'
 import Editor from './Editor.vue'
 import { shortcut } from './shortcuts'
-import { canonicalResource, registerDirectory, createNote, fs, openFiles, readResource, requireAvailablePath, saveAs, saveResource, type OpenedFile } from './files'
+import { canonicalResource, registerDirectory, createNote, fs, openFiles, readResource, requireAvailablePath, type OpenedFile } from './files'
 import { containsResource, entryPath, renamedResource } from './filePaths'
-import { createDocument, isDirty, outline, updateDocument, type DocumentTab } from './document'
+import { createDocument, documentController, isDirty, outline, updateDocument, type DocumentTab } from './document'
+import { filePort } from './platform/filePort'
+import { parseSession } from './session'
 
 type EditorView = InstanceType<typeof Editor>
 type Heading = { lvl: number; content: string; slug: string }
@@ -36,6 +38,9 @@ const fileBusy = ref(false)
 const fileTitle = computed(() => ({ note: '新建笔记', folder: '新建文件夹', rename: '重命名', delete: '删除' })[fileDialog.value?.action ?? 'note'])
 const truncated = ref(false)
 const closing = ref<DocumentTab[] | null>(null)
+const closeBusy = ref(false)
+const modalOpen = computed(() => !!fileDialog.value || !!closing.value)
+let modalReturnFocus: HTMLElement | null = null
 let closeAction: (() => void) | null = null
 let draftTimer: ReturnType<typeof setTimeout>
 let draftQueue = Promise.resolve()
@@ -69,6 +74,7 @@ function persist() {
 }
 
 function attach(name: string, text = '', resource: OpenedFile['resource'] | null = null) {
+  if (modalOpen.value || inputBusy()) return
   editors.get(activeId.value)?.flush()
   const tab = createDocument(name, text, resource ? markRaw(resource) : null)
   tabs.push(tab)
@@ -78,6 +84,7 @@ function attach(name: string, text = '', resource: OpenedFile['resource'] | null
 }
 
 async function addFile(file: OpenedFile) {
+  if (modalOpen.value || inputBusy()) return
   file.resource = await canonicalResource(file.resource)
   for (const tab of tabs) {
     const current = tab.resource ? await canonicalResource(tab.resource) : null
@@ -96,6 +103,7 @@ async function addFile(file: OpenedFile) {
 }
 
 function select(id: string) {
+  if (modalOpen.value || inputBusy()) return
   editors.get(activeId.value)?.flush()
   activeId.value = id
   remember()
@@ -107,33 +115,34 @@ function change(tab: DocumentTab, text: string) {
 }
 
 function setMode(mode: DocumentTab['mode']) {
-  if (!active.value) return
+  if (!active.value || modalOpen.value || inputBusy()) return
   editors.get(activeId.value)?.flush()
   active.value.mode = mode
   remember()
 }
 
 async function open() {
+  if (modalOpen.value || inputBusy()) return
   for (const file of await openFiles()) await addFile(file)
 }
 
-async function save(tab = active.value, copy = false) {
-  if (!tab || tab.saving || fileBusy.value) return
+function inputBusy() {
+  return editors.get(activeId.value)?.isInputBusy() ?? false
+}
+
+async function save(tab = active.value, copy = false, fromCloseDialog = false) {
+  if (!tab || tab.saving || fileBusy.value || (modalOpen.value && !fromCloseDialog) || inputBusy()) return
   const resource = tab.resource
   if (!copy && resource?.kind === 'root'
     && roots.value.find(item => item.id === resource.root)?.mode === 'read_only') {
     throw new Error('此文件所在位置为只读，请使用另存为。')
   }
   editors.get(tab.id)?.flush()
-  const snapshot = tab.text
+  const snapshot = documentController.captureSave(tab)
   tab.saving = true
   try {
-    if (copy || !tab.resource) {
-      const saved = await saveAs(tab.name, snapshot)
-      tab.name = saved.name
-      tab.resource = markRaw(saved.resource)
-    } else tab.resource = markRaw(await saveResource(tab.resource, snapshot))
-    tab.savedText = snapshot
+    const saved = await filePort.save(snapshot, copy)
+    documentController.acknowledgeSave(tab, snapshot, markRaw(saved.resource), saved.name)
     status.value = `已保存 ${tab.name}`
     await persist()
     await refreshFolder()
@@ -145,7 +154,8 @@ function newNote() {
 }
 
 function requestFileAction(action: FileAction, entry?: FileEntry) {
-  if (!writableRoot.value || fileBusy.value) return
+  if (!writableRoot.value || fileBusy.value || modalOpen.value || inputBusy()) return
+  editors.get(activeId.value)?.flush()
   fileDialog.value = { action, root: root.value, folder: folder.value, entry }
   fileName.value = entry?.name ?? (action === 'note' ? '未命名.md' : '新建文件夹')
   fileError.value = ''
@@ -162,11 +172,15 @@ function cancelFileAction() {
 
 function fileDialogKey(event: KeyboardEvent) {
   if (event.key === 'Escape') { event.preventDefault(); cancelFileAction() }
+  trapDialogFocus(event)
+}
+
+function trapDialogFocus(event: KeyboardEvent) {
   if (event.key !== 'Tab') return
   const controls = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('input:not(:disabled), button:not(:disabled)'))
   if (!controls.length) { event.preventDefault(); return }
   const next = event.shiftKey ? controls.at(-1) : controls[0]
-  if (document.activeElement?.id === 'file-dialog'
+  if (!controls.includes(document.activeElement as HTMLElement)
     || document.activeElement === (event.shiftKey ? controls[0] : controls.at(-1))) {
     event.preventDefault()
     next?.focus()
@@ -259,6 +273,7 @@ async function refreshFolder() {
 }
 
 async function enter(entry: FileEntry) {
+  if (modalOpen.value || inputBusy()) return
   const path = entryPath(folder.value, entry.name)
   if (entry.kind === 'directory') {
     folder.value = path
@@ -267,6 +282,7 @@ async function enter(entry: FileEntry) {
 }
 
 async function pickFolder() {
+  if (modalOpen.value || inputBusy()) return
   const picker = window as unknown as Window & { showDirectoryPicker(options: { mode: string }): Promise<FileSystemDirectoryHandle> }
   const handle = await picker.showDirectoryPicker({ mode: 'readwrite' })
   roots.value = await fs.roots()
@@ -290,6 +306,7 @@ function removeTab(id: string) {
 }
 
 function requestClose(tab: DocumentTab) {
+  if (modalOpen.value || inputBusy()) return
   editors.get(tab.id)?.flush()
   if (!isDirty(tab)) { removeTab(tab.id); return }
   closing.value = [tab]
@@ -297,6 +314,7 @@ function requestClose(tab: DocumentTab) {
 }
 
 function finishClose() {
+  if (closeBusy.value) return
   const action = closeAction
   closing.value = null
   closeAction = null
@@ -305,18 +323,36 @@ function finishClose() {
 
 async function saveAndClose() {
   const documents = closing.value
-  if (!documents) return
-  for (const tab of documents) await save(tab)
-  if (documents.some(isDirty)) return
-  finishClose()
+  if (!documents || closeBusy.value) return
+  closeBusy.value = true
+  try {
+    for (const tab of documents) await save(tab, false, true)
+    if (documents.some(isDirty)) return
+    closeBusy.value = false
+    finishClose()
+  } finally { closeBusy.value = false }
+}
+
+function cancelClose() {
+  if (closeBusy.value) return
+  closing.value = null
+  closeAction = null
+}
+
+function closeDialogKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') { event.preventDefault(); cancelClose() }
+  trapDialogFocus(event)
 }
 
 async function checkExternal() {
   const tab = active.value
-  if (!tab?.resource || tab.saving || fileDialog.value || fileBusy.value) return
+  if (!tab?.resource || tab.saving || modalOpen.value || fileBusy.value || inputBusy()) return
+  editors.get(tab.id)?.flush()
   const resource = tab.resource
   const latest = await readResource(resource)
-  if (fileBusy.value || tab.resource !== resource || !tabs.includes(tab)) return
+  if (fileBusy.value || modalOpen.value || inputBusy() || tab.saving
+    || active.value !== tab || tab.resource !== resource || !tabs.includes(tab)) return
+  editors.get(tab.id)?.flush()
   if (latest.text === tab.savedText) return
   if (isDirty(tab)) {
     error.value = `${tab.name} 已在外部修改，本地编辑已保留；请另存为，或先复制内容后重新打开。`
@@ -344,12 +380,22 @@ watch(() => [active.value?.name, active.value?.text, active.value?.savedText], (
   document.title = `${active.value && isDirty(active.value) ? '● ' : ''}${active.value?.name ?? 'MarkText'} — MarkText · Dopame`
 })
 watch(search, () => find())
+watch(modalOpen, async (opened) => {
+  if (opened) {
+    modalReturnFocus = document.activeElement as HTMLElement | null
+    await nextTick()
+    if (closing.value) document.querySelector<HTMLButtonElement>('#cancel-close')?.focus()
+  } else {
+    await nextTick()
+    if (modalReturnFocus?.isConnected) modalReturnFocus.focus()
+    modalReturnFocus = null
+  }
+})
 
 onMounted(async () => {
   try {
     const { text } = await fs.readText('private', '.marktext/session.json')
-    const session = JSON.parse(text)
-    if (session.version !== 1 || !Array.isArray(session.tabs)) throw new Error('无法读取草稿格式，原记录未覆盖')
+    const session = parseSession(text)
     for (const tab of session.tabs) tabs.push({ ...tab, saving: false })
     activeId.value = tabs.some(tab => tab.id === session.activeId) ? session.activeId : tabs[0]?.id ?? ''
     sessionWritable = true
@@ -374,7 +420,7 @@ onMounted(async () => {
   })
   appWindow.on('activate', () => void run(checkExternal))
   appWindow.on('beforeclose', () => {
-    if (fileBusy.value) return false
+    if (fileBusy.value || modalOpen.value || inputBusy()) return false
     for (const editor of editors.values()) editor.flush()
     const dirty = tabs.filter(isDirty)
     if (!dirty.length) { void persist(); return true }
@@ -389,16 +435,18 @@ onMounted(async () => {
     { id: 'save-as', label: '另存为…', onSelect: () => void run(() => save(active.value, true)) },
   ] }])
   document.addEventListener('keydown', event => {
-    if (event.isComposing) return
-    const action = shortcut(event)
-    if (!action) return
-    if (fileDialog.value || closing.value) {
+    if (modalOpen.value) {
+      const action = shortcut(event)
+      if (!action) return
       if (!(event.target as Element).closest('[role="dialog"]') || !['undo', 'redo'].includes(action)) {
         event.preventDefault()
         event.stopImmediatePropagation()
       }
       return
     }
+    if (event.isComposing) return
+    const action = shortcut(event)
+    if (!action) return
     const inEditor = !!(event.target as Element).closest('.editor-panel')
     const editorAction = action === 'undo' || action === 'redo' || action.includes(':')
     if (editorAction && !inEditor) return
@@ -428,7 +476,7 @@ onMounted(async () => {
 
 <template>
   <main class="app-shell">
-    <header class="toolbar" aria-label="文档工具栏">
+    <header class="toolbar" aria-label="文档工具栏" :inert="modalOpen">
       <strong class="brand">MarkText <span>Dopame</span></strong>
       <button @click="attach('未命名.md')" title="Ctrl+N">新建</button>
       <button @click="run(open)" title="Ctrl+O">打开</button>
@@ -447,7 +495,7 @@ onMounted(async () => {
       <button @click="dark = !dark" aria-label="切换主题">{{ dark ? '浅色' : '深色' }}</button>
     </header>
     <div v-if="error" role="alert" class="error-banner"><span>{{ error }}</span><button @click="error = ''">关闭提示</button></div>
-    <section class="workspace">
+    <section class="workspace" :inert="modalOpen">
       <aside class="sidebar" aria-label="文件与大纲">
         <div class="section-heading">文件 <button @click="run(pickFolder)">添加文件夹</button></div>
         <select v-if="roots.length" v-model="root" aria-label="文件位置" @change="folder = ''; run(refreshFolder)">
@@ -487,7 +535,7 @@ onMounted(async () => {
         </div>
         <Editor v-for="tab in tabs" v-show="tab.id === activeId" :key="tab.id"
           :ref="view => { if (view) editors.set(tab.id, view as EditorView) }"
-          :text="tab.text" :resource="tab.resource" :mode="tab.mode" :active="tab.id === activeId"
+          :text="tab.text" :resource="tab.resource" :mode="tab.mode" :active="tab.id === activeId" :blocked="modalOpen"
           @change="text => change(tab, text)" @outline="items => outlines[tab.id] = items" />
       </section>
     </section>
@@ -512,10 +560,10 @@ onMounted(async () => {
       </form>
     </div>
     <div v-if="closing" class="dialog-backdrop">
-      <section role="dialog" aria-modal="true" aria-labelledby="close-title" class="dialog">
+      <section id="close-dialog" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="close-title" class="dialog" @keydown="closeDialogKey">
         <h2 id="close-title">保存未完成的修改？</h2><p>{{ closing.map(tab => tab.name).join('、') }}</p>
         <p class="hint">草稿保存在应用中；原文件只在保存成功后更新。</p>
-        <div class="dialog-actions"><button @click="closing = null; closeAction = null">取消</button><button @click="finishClose">不保存并关闭</button><button class="primary" @click="run(saveAndClose)">保存并关闭</button></div>
+        <div class="dialog-actions"><button id="cancel-close" :disabled="closeBusy" @click="cancelClose">取消</button><button :disabled="closeBusy" @click="finishClose">不保存并关闭</button><button :disabled="closeBusy" class="primary" @click="run(saveAndClose)">{{ closeBusy ? '保存中…' : '保存并关闭' }}</button></div>
       </section>
     </div>
   </main>

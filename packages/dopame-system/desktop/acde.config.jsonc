@@ -1,0 +1,9 @@
+{
+  "type": "desktop",
+  "id": "marktext-collaboration-dev",
+  "label": "MarkText 协作开发桌面",
+  "entry": "index.html",
+  "services": {
+    "marktextdocs": "../services/marktextdocs.ts"
+  }
+}

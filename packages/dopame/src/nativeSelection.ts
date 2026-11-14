@@ -1,10 +1,6 @@
 import { SelectionType, type Muya } from '@muyajs/core'
 
-// acdert 0.0.9 focuses contenteditable on pointer input without establishing a Range.
-export function attachNativeSelection(muya: Muya): () => void {
-  if (!navigator.userAgent.includes('acdert/0.0.9')) return () => {}
-
-  const root = muya.domNode
+function attachCaretOverlay(root: HTMLElement): () => void {
   const doc = root.ownerDocument
   // acdert 0.0.9 accepts DOM selections but does not paint the contenteditable caret.
   const caret = doc.createElement('div')
@@ -36,6 +32,25 @@ export function attachNativeSelection(muya: Muya): () => void {
     frame = requestAnimationFrame(paintCaret)
   }
   frame = requestAnimationFrame(paintCaret)
+  return () => {
+    cancelAnimationFrame(frame)
+    caret.remove()
+  }
+}
+
+// These renderer profiles can focus contenteditable without establishing a Range.
+// The tested system 0.0.11 package advertises the 0.0.10 renderer profile.
+export function attachNativeSelection(muya: Muya): () => void {
+  const rendererVersion = /\bacdert\/(0\.0\.(?:9|10))(?=$|[\s;)])/i.exec(navigator.userAgent)?.[1]
+  const needsPointerSelection = rendererVersion === '0.0.9' || rendererVersion === '0.0.10'
+  const needsArrowKeys = rendererVersion === '0.0.9' || rendererVersion === '0.0.10'
+  const needsCaretOverlay = rendererVersion === '0.0.9'
+  if (!needsPointerSelection) return () => {}
+
+  const root = muya.domNode
+  const doc = root.ownerDocument
+  let detachCaret: (() => void) | undefined
+  if (needsCaretOverlay) detachCaret = attachCaretOverlay(root)
   let anchor: { node: Node; offset: number } | null = null
 
   function atPoint(event: MouseEvent): Range | null {
@@ -102,14 +117,13 @@ export function attachNativeSelection(muya: Muya): () => void {
 
   function up() { anchor = null }
   root.addEventListener('mousedown', down, true)
-  root.addEventListener('keydown', keydown)
+  if (needsArrowKeys) root.addEventListener('keydown', keydown)
   doc.addEventListener('mousemove', move)
   doc.addEventListener('mouseup', up)
   return () => {
-    cancelAnimationFrame(frame)
-    caret.remove()
+    detachCaret?.()
     root.removeEventListener('mousedown', down, true)
-    root.removeEventListener('keydown', keydown)
+    if (needsArrowKeys) root.removeEventListener('keydown', keydown)
     doc.removeEventListener('mousemove', move)
     doc.removeEventListener('mouseup', up)
   }

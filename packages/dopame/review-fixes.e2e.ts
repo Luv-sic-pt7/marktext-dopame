@@ -89,8 +89,9 @@ test('close modal blocks new-tab and save shortcuts', async({ app }) => {
   await expect(app.getByRole('dialog')).toBeVisible()
   await app.keyboard.press('ctrl+n')
   await app.keyboard.press('Meta+t')
-  await expect(app.getByRole('tab')).toHaveCount(1)
+  await expect(app.getByRole('tab')).toHaveCount(0)
   await app.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(app.getByRole('tab')).toHaveCount(1)
   await expect.poll(() => app.evaluate(value)).toBe('keep me')
 })
 

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MarkText 协作开发桌面</title>
+    <style>
+      :root { color-scheme: light; font: 15px/1.6 system-ui, sans-serif; color: #28342e; background: #eef1ec; }
+      body { margin: 0; padding: 32px; }
+      main { max-width: 680px; }
+      h1 { font-size: 23px; }
+      button { padding: 8px 16px; font: inherit; border: 1px solid #85968a; border-radius: 4px; background: white; color: inherit; }
+      p { overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>MarkText 协作开发桌面</h1>
+      <p>此桌面用于本机服务验证。系统 Agent 工具注册、可信批准、系统通知、文件交接和多窗口仍需目标环境验收。</p>
+      <p id="service-status" role="status">正在查询文档服务…</p>
+      <button id="refresh" type="button">刷新服务状态</button>
+      <button id="open" type="button">打开 MarkText 协作预览</button>
+      <p id="open-error" role="alert" hidden></p>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
