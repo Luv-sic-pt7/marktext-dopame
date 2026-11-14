@@ -746,3 +746,163 @@ describe('authorization and immutable handoffs', () => {
     expect(Buffer.from(result.base64, 'base64').equals(bytes)).toBe(true)
   })
 })
+
+describe('recoverable document trash', () => {
+  const setTrash = (snapshot: any, trashed: boolean, baseRevision = snapshot.revision) =>
+    call('worker.setTrash', store.workerToken, { snapshot, trashed, baseRevision })
+
+  test('trash hides new document operations while delivered artifacts and results remain readable', () => {
+    const a = create('不可变历史 😀')
+    const readId = 'read-before-trash'
+    const read = submit(researcher, 'documents.read', { document: a.document }, readId)
+    const proposed = submit(researcher, 'documents.propose', {
+      document: a.document,
+      baseRevision: 0,
+      replacement: '建议内容'
+    })
+    const proposal = call('getResult', researcher, { taskId: proposed.taskId }).proposal
+    setTrash(a.snapshot, true)
+    const listed = submit(researcher, 'documents.list', {})
+    expect(call('getResult', researcher, { taskId: listed.taskId }).documents).toEqual([])
+    for (const [capability, input] of [
+      ['documents.read', { document: a.document }],
+      ['documents.outline', { document: a.document }],
+      ['documents.export', { document: a.document }],
+      ['documents.propose', { document: a.document, baseRevision: 0, replacement: '新建议' }],
+      [
+        'documents.patch',
+        {
+          document: a.document,
+          baseRevision: 0,
+          edits: [{ from: 0, to: 0, expectedText: '', text: 'x' }]
+        }
+      ],
+      ['documents.save', { document: a.document, expectedRevision: 0 }],
+      [
+        'documents.apply',
+        { document: a.document, proposalId: proposal.proposalId, expectedRevision: 0 }
+      ]
+    ] as const)
+      denied(
+        'submit',
+        researcher,
+        {
+          request: {
+            protocol: PROTOCOL,
+            requestId: crypto.randomUUID(),
+            capability,
+            capabilityVersion: 1,
+            input
+          }
+        },
+        'DOCUMENT_NOT_FOUND'
+      )
+    denied(
+      'worker.publish',
+      store.workerToken,
+      { snapshot: { ...a.snapshot, text: '不能复活', revision: 1 }, expectedRevision: 0 },
+      'DOCUMENT_NOT_FOUND'
+    )
+    expect(submit(researcher, 'documents.read', { document: a.document }, readId).taskId).toBe(
+      read.taskId
+    )
+    expect(call('getResult', researcher, { taskId: read.taskId }).text).toBe('不可变历史 😀')
+    const artifact = call('readArtifact', researcher, {
+      ref: a.result.artifacts[0],
+      offset: 0,
+      length: 1000
+    })
+    expect(Buffer.from(artifact.base64, 'base64').toString()).toBe('不可变历史 😀')
+    setTrash(a.snapshot, false)
+    const restored = submit(researcher, 'documents.read', { document: a.document })
+    expect(call('getResult', researcher, { taskId: restored.taskId }).text).toBe('不可变历史 😀')
+  })
+
+  test('trash cancels queued and unapproved writers without deleting their historical receipts', () => {
+    const a = create('abc')
+    const queued = submit(researcher, 'documents.patch', {
+      document: a.document,
+      baseRevision: 0,
+      edits: [{ from: 0, to: 0, expectedText: '', text: 'Q' }]
+    })
+    const guarded = pair('guarded', false)
+    grant('guarded', 'document', a.snapshot.id, ['read', 'write'])
+    const waiting = submit(guarded, 'documents.patch', {
+      document: a.document,
+      baseRevision: 0,
+      edits: [{ from: 0, to: 0, expectedText: '', text: 'W' }]
+    })
+    expect(waiting.state).toBe('waiting-approval')
+    setTrash(a.snapshot, true)
+    expect(call('getTask', researcher, { taskId: queued.taskId }).state).toBe('cancelled')
+    expect(call('getTask', guarded, { taskId: waiting.taskId }).state).toBe('cancelled')
+    expect(claim()).toBeNull()
+    expect(store.row('SELECT text FROM documents WHERE id=?', a.snapshot.id).text).toBe('abc')
+    expect(store.row('SELECT COUNT(*) AS n FROM tasks').n).toBe(3)
+  })
+
+  test.each(['running', 'committing', 'recovering'])('trash is blocked by a %s write', (phase) => {
+    const a = create('abc')
+    const receipt = submit(researcher, 'documents.patch', {
+      document: a.document,
+      baseRevision: 0,
+      edits: [{ from: 0, to: 0, expectedText: '', text: 'x' }]
+    })
+    const job = claim()
+    if (phase !== 'running') begin(job)
+    if (phase === 'recovering')
+      store.run('UPDATE tasks SET lease_until=0 WHERE id=?', receipt.taskId)
+    denied(
+      'worker.setTrash',
+      store.workerToken,
+      { snapshot: a.snapshot, baseRevision: 0, trashed: true },
+      'DOCUMENT_BUSY'
+    )
+    expect(store.row('SELECT trashed FROM documents WHERE id=?', a.snapshot.id).trashed).toBe(0)
+    expect(store.row('SELECT text FROM documents WHERE id=?', a.snapshot.id).text).toBe('abc')
+  })
+
+  test('an offline restoration keeps its original base and cannot overwrite a newer remote document', () => {
+    const a = create('基础版本')
+    setTrash(a.snapshot, true)
+    const peer = { ...a.snapshot, text: '其它执行器的新内容', revision: 1 }
+    setTrash(peer, false, 0)
+    denied(
+      'worker.setTrash',
+      store.workerToken,
+      {
+        snapshot: { ...a.snapshot, text: '离线恢复后又编辑', revision: 2 },
+        baseRevision: 0,
+        trashed: false
+      },
+      'REVISION_CONFLICT'
+    )
+    expect(store.row('SELECT text,revision FROM documents WHERE id=?', a.snapshot.id)).toEqual({
+      text: peer.text,
+      revision: 1
+    })
+  })
+
+  test('retrying a lost restore acknowledgement is idempotent at its already published snapshot', () => {
+    const a = create('原版本')
+    setTrash(a.snapshot, true)
+    const restored = { ...a.snapshot, text: '离线恢复后的输入', revision: 1 }
+    const first = setTrash(restored, false, 0)
+    expect(setTrash(restored, false, 0)).toEqual(first)
+    expect(store.row('SELECT COUNT(*) AS n FROM snapshots WHERE doc=?', a.snapshot.id).n).toBe(2)
+    expect(store.row('SELECT trashed FROM documents WHERE id=?', a.snapshot.id).trashed).toBe(0)
+  })
+
+  test('adding the trash column migrates existing document rows without changing their content', () => {
+    const a = create('迁移前的原文')
+    store.db.exec('ALTER TABLE documents DROP COLUMN trashed')
+    store.close()
+    store = new StateStore(directory)
+    connect()
+    expect(
+      store.row('SELECT text,revision,trashed FROM documents WHERE id=?', a.snapshot.id)
+    ).toEqual({ text: '迁移前的原文', revision: 0, trashed: 0 })
+    const read = submit(researcher, 'documents.read', { document: a.document })
+    expect(call('getResult', researcher, { taskId: read.taskId }).text).toBe('迁移前的原文')
+  })
+})

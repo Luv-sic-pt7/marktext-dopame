@@ -8,6 +8,8 @@ interface Note {
   dirty: boolean
   open: boolean
   detail: string
+  trashed?: boolean
+  trashPending?: boolean
 }
 
 const props = defineProps<{ notes: Note[]; activeId: string; disabled?: boolean }>()
@@ -17,28 +19,32 @@ const emit = defineEmits<{
   rename: [id: string, title: string]
   duplicate: [id: string]
   close: [id: string]
+  trash: [id: string]
+  restore: [id: string]
 }>()
 
 const root = ref<HTMLElement | null>(null)
 const collapsed = ref(false)
 const filtering = ref(false)
 const query = ref('')
-const scope = ref<'all' | 'open'>('all')
+const scope = ref<'all' | 'open' | 'trash'>('all')
 const renameId = ref('')
 const renameDraft = ref('')
 
-const duplicateTitles = computed(() => {
-  const counts = new Map<string, number>()
-  for (const note of props.notes) counts.set(note.title, (counts.get(note.title) ?? 0) + 1)
-  return new Set([...counts].filter(([, count]) => count > 1).map(([title]) => title))
-})
 const visibleNotes = computed(() => {
   const term = query.value.trim().toLocaleLowerCase()
   return props.notes.filter(
     (note) =>
-      (scope.value === 'all' || note.open) &&
+      (scope.value === 'trash'
+        ? note.trashed
+        : !note.trashed && (scope.value === 'all' || note.open)) &&
       (!term || `${note.title} ${note.detail}`.toLocaleLowerCase().includes(term))
   )
+})
+const duplicateTitles = computed(() => {
+  const counts = new Map<string, number>()
+  for (const note of visibleNotes.value) counts.set(note.title, (counts.get(note.title) ?? 0) + 1)
+  return new Set([...counts].filter(([, count]) => count > 1).map(([title]) => title))
 })
 
 async function toggleFilter() {
@@ -52,7 +58,7 @@ async function toggleFilter() {
   root.value?.querySelector<HTMLInputElement>('.note-filter-input')?.focus()
 }
 
-function setScope(value: 'all' | 'open') {
+function setScope(value: 'all' | 'open' | 'trash') {
   scope.value = value
 }
 function toggleCollapsed() {
@@ -88,16 +94,24 @@ async function finishRename(save: boolean, restoreFocus = false) {
   }
 }
 
-const noteItems = [
+const commonItems = [
   { id: 'rename', label: '重命名' },
   { id: 'duplicate', label: '创建副本' }
 ]
-const openNoteItems = [...noteItems, { id: 'close', label: '关闭标签' }]
+const trashItem = { id: 'trash', label: '移入回收站', separator: true }
+const noteItems = [...commonItems, trashItem]
+const openNoteItems = [...commonItems, { id: 'close', label: '关闭标签' }, trashItem]
+const trashedItems = [
+  { id: 'restore', label: '恢复' },
+  { id: 'duplicate', label: '创建副本' }
+]
 
 function menuAction(action: string, note: Note) {
   if (action === 'rename') void startRename(note)
   else if (action === 'duplicate') emit('duplicate', note.id)
   else if (action === 'close') emit('close', note.id)
+  else if (action === 'trash') emit('trash', note.id)
+  else if (action === 'restore') emit('restore', note.id)
 }
 </script>
 
@@ -160,6 +174,7 @@ function menuAction(action: string, note: Note) {
       <div class="note-scopes" aria-label="笔记范围">
         <button :aria-pressed="scope === 'all'" @click="setScope('all')">全部</button>
         <button :aria-pressed="scope === 'open'" @click="setScope('open')">已打开</button>
+        <button :aria-pressed="scope === 'trash'" @click="setScope('trash')">回收站</button>
       </div>
       <div class="note-list" role="list">
         <div
@@ -169,8 +184,9 @@ function menuAction(action: string, note: Note) {
           :class="{ selected: note.id === activeId }"
           role="listitem"
           :aria-label="note.title"
+          :aria-description="note.trashPending ? '协作待同步' : undefined"
           :data-note-id="note.id"
-          @click="emit('activate', note.id)"
+          @click="note.trashed ? undefined : emit('activate', note.id)"
         >
           <input
             v-if="renameId === note.id"
@@ -188,8 +204,9 @@ function menuAction(action: string, note: Note) {
             class="note-open"
             :aria-label="note.title"
             :aria-current="note.id === activeId ? 'true' : undefined"
+            :disabled="note.trashed"
             :title="`${note.title} · ${note.detail}`"
-            @click.stop="emit('activate', note.id)"
+            @click.stop="note.trashed ? undefined : emit('activate', note.id)"
           >
             <span
               class="note-status"
@@ -203,13 +220,14 @@ function menuAction(action: string, note: Note) {
               <small v-if="duplicateTitles.has(note.title)" class="note-detail">{{
                 note.detail
               }}</small>
+              <small v-if="note.trashPending" class="note-detail">协作待同步</small>
             </span>
           </button>
           <CommandMenu
             v-if="renameId !== note.id"
             class="note-more"
             :label="'笔记操作 ' + note.title"
-            :items="note.open ? openNoteItems : noteItems"
+            :items="note.trashed ? trashedItems : note.open ? openNoteItems : noteItems"
             :disabled="disabled"
             icon
             @click.stop
@@ -224,7 +242,15 @@ function menuAction(action: string, note: Note) {
         </div>
       </div>
       <p v-if="!visibleNotes.length" class="note-empty">
-        {{ query.trim() ? '没有匹配的笔记' : scope === 'open' ? '没有打开的笔记' : '还没有笔记' }}
+        {{
+          query.trim()
+            ? '没有匹配的笔记'
+            : scope === 'trash'
+              ? '回收站为空'
+              : scope === 'open'
+                ? '没有打开的笔记'
+                : '还没有笔记'
+        }}
       </p>
     </div>
   </section>
@@ -333,6 +359,9 @@ function menuAction(action: string, note: Note) {
   min-height: 30px;
   padding: 4px 4px 4px 7px;
   text-align: left;
+}
+.note-open:disabled {
+  opacity: 1;
 }
 .note-status {
   width: 5px;

@@ -84,6 +84,8 @@ export class StateStore {
     for (const column of ['expected_text', 'source_grant'])
       if (!columns.includes(column))
         this.db.exec('ALTER TABLE tasks ADD COLUMN ' + column + ' TEXT')
+    if (!this.all('PRAGMA table_info(documents)').some((column) => column.name === 'trashed'))
+      this.db.exec('ALTER TABLE documents ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0')
     chmodSync(join(stateDir, 'collaboration.sqlite'), 0o600)
     this.db.transaction(() => {
       for (const t of this.all("SELECT * FROM tasks WHERE state IN ('running','committing')"))
@@ -264,9 +266,10 @@ export class StateStore {
     integer(s.savedRevision, -1, s.revision, 'savedRevision')
     return s
   }
-  publishSnapshot(s: Snapshot, expected: number) {
+  publishSnapshot(s: Snapshot, expected: number, allowTrashed = false) {
     this.validateSnapshot(s)
     const old = this.row('SELECT * FROM documents WHERE id=?', s.id)
+    if (old?.trashed && !allowTrashed) fail('DOCUMENT_NOT_FOUND', '文档已移入回收站')
     if ((old?.revision ?? -1) !== expected)
       fail('REVISION_CONFLICT', '文档版本已更新', { actualRevision: old?.revision ?? -1 })
     if (old && s.revision < old.revision)
@@ -275,7 +278,7 @@ export class StateStore {
     if (prior && (prior.text !== s.text || prior.title !== s.title))
       fail('REVISION_CONFLICT', '同一版本内容不可改变', { actualRevision: old?.revision })
     this.run(
-      'INSERT INTO documents VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,revision=excluded.revision,saved_revision=excluded.saved_revision,text=excluded.text',
+      'INSERT INTO documents(id,title,revision,saved_revision,text) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,revision=excluded.revision,saved_revision=excluded.saved_revision,text=excluded.text',
       s.id,
       s.title,
       s.revision,
@@ -317,12 +320,18 @@ export class StateStore {
       }
     }
   }
-  requestPermission(c: any, r: TaskRequest) {
+  requestPermission(c: any, r: TaskRequest, allowTrashed = false) {
     const definition = CAPABILITIES.find((x) => x.id === r.capability)!
     const d = r.input.document
     if (r.capability === 'documents.create') this.need(c.id, 'workspace', '*', 'create')
     else if (d)
       for (const action of definition.permissions) this.need(c.id, 'document', d.documentId, action)
+    if (
+      d &&
+      !allowTrashed &&
+      this.row('SELECT trashed FROM documents WHERE id=?', d.documentId)?.trashed
+    )
+      fail('DOCUMENT_NOT_FOUND', '文档已移入回收站')
     if (r.input.artifact) this.artifact(c.id, r.input.artifact)
     if (r.capability === 'documents.apply') {
       this.need(c.id, 'proposal', r.input.proposalId, 'read')
@@ -359,7 +368,7 @@ export class StateStore {
     let s: any
     if (d) s = this.snapshot(d)
     if (action === 'list') {
-      const rows = this.all('SELECT id,title,revision FROM documents ORDER BY id')
+      const rows = this.all('SELECT id,title,revision FROM documents WHERE trashed=0 ORDER BY id')
         .filter((x) => this.allowed(c.id, 'document', x.id, 'read'))
         .filter((x) => !r.input.after || x.id > r.input.after)
       const page = rows.slice(0, r.input.limit ?? 50)
@@ -518,7 +527,7 @@ export class StateStore {
         )
         if (previous) {
           if (previous.digest !== digest) fail('IDEMPOTENCY_MISMATCH', '同一请求 ID 的参数发生变化')
-          this.requestPermission(c, r)
+          this.requestPermission(c, r, !active.includes(previous.state))
           return {
             taskId: previous.id,
             state: previous.state,
@@ -775,7 +784,7 @@ export class StateStore {
           actions: parse(g.actions),
           live: this.grantLive(g)
         })),
-        documents: this.all('SELECT id,title,revision FROM documents'),
+        documents: this.all('SELECT id,title,revision FROM documents WHERE trashed=0'),
         tasks: this.all('SELECT * FROM tasks ORDER BY created DESC LIMIT 100').map((t) => ({
           ...this.view(t),
           capability: parse(t.request).capability
@@ -1104,10 +1113,55 @@ export class StateStore {
     if (method === 'worker.documentStatus') {
       strict(a, ['documentId'], ['documentId'])
       return this.row(
-        'SELECT id,title,revision,saved_revision AS savedRevision FROM documents WHERE id=?',
+        'SELECT id,title,revision,saved_revision AS savedRevision,trashed FROM documents WHERE id=?',
         id(a.documentId)
       )
     }
+    if (method === 'worker.setTrash')
+      return this.db.transaction(() => {
+        strict(a, ['snapshot', 'baseRevision', 'trashed'], ['snapshot', 'baseRevision', 'trashed'])
+        const s = this.validateSnapshot(a.snapshot)
+        integer(a.baseRevision, -1, Number.MAX_SAFE_INTEGER, 'baseRevision')
+        if (typeof a.trashed !== 'boolean') fail('INVALID_ARGUMENT', '回收站状态须为布尔值')
+        if (
+          this.row(
+            "SELECT 1 FROM tasks WHERE target_doc=? AND state IN ('running','committing','recovering')",
+            s.id
+          )
+        )
+          fail('DOCUMENT_BUSY', '协作任务尚未结束，请核对后再移动笔记', undefined, true)
+        const current = this.row('SELECT * FROM documents WHERE id=?', s.id)
+        const identical =
+          current &&
+          current.revision === s.revision &&
+          current.title === s.title &&
+          current.text === s.text &&
+          current.saved_revision === s.savedRevision
+        // A lost acknowledgement can leave the exact published snapshot ahead of the recorded base.
+        if (current && current.revision !== a.baseRevision && !identical)
+          fail('REVISION_CONFLICT', '协作文档版本已变化，回收站操作尚未同步', {
+            actualRevision: current.revision
+          })
+        if (!identical) this.publishSnapshot(s, current?.revision ?? -1, true)
+        if (!current || !!current.trashed !== a.trashed)
+          this.run('UPDATE documents SET trashed=? WHERE id=?', a.trashed ? 1 : 0, s.id)
+        if (a.trashed)
+          for (const task of this.all(
+            "SELECT * FROM tasks WHERE target_doc=? AND state IN ('queued','waiting-approval')",
+            s.id
+          ))
+            this.transition(task, 'cancelled', '文档已移入回收站', {
+              cancel_requested: 1,
+              lease: null,
+              lease_until: null,
+              error: json({
+                code: 'CANCEL_REQUESTED',
+                message: '文档已移入回收站',
+                retryable: false
+              })
+            })
+        return { document: documentRef(s.id, s.revision), trashed: a.trashed }
+      })()
     if (method === 'worker.jobStatus') {
       strict(a, ['taskId', 'lease'], ['taskId', 'lease'])
       return this.view(this.workerTask(a, ['running', 'committing']))

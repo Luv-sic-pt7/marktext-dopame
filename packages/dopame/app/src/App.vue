@@ -285,6 +285,18 @@ async function closeTab(id: string) {
   if (!c.active) reopenButton.value?.focus()
   else adapter?.focus()
 }
+async function trashNote(id: string) {
+  await c.trash(id)
+  await nextTick()
+  if (c.active) adapter?.focus()
+  else document.querySelector<HTMLButtonElement>('.add-tab')?.focus()
+}
+async function restoreNote(id: string) {
+  await c.restoreTrash(id)
+  await nextTick()
+  await ensureEditor()
+  adapter?.focus()
+}
 const reopenClosedTab = () =>
   run(async () => {
     await c.reopenClosedTab()
@@ -560,7 +572,7 @@ async function commitTitle() {
 }
 async function requestClose() {
   await c.flushActive()
-  if (c.rows.some((d) => d.dirty)) closeDialog.value = true
+  if (c.rows.some((d) => !d.trashed && d.dirty)) closeDialog.value = true
   else await exitWithDrafts()
 }
 async function exitWithDrafts() {
@@ -577,7 +589,7 @@ async function exitWithDrafts() {
 async function saveAndExit() {
   closing.value = true
   try {
-    for (const d of c.docs.values()) if (c.dirty(d)) await c.save(d.id)
+    for (const d of c.docs.values()) if (!d.trashed && c.dirty(d)) await c.save(d.id)
     await exitWithDrafts()
   } catch (error) {
     c.error(error)
@@ -765,6 +777,8 @@ watch(
         @rename="(id, title) => run(() => c.rename(id, title))"
         @duplicate="duplicateDoc"
         @close="(id) => run(() => closeTab(id))"
+        @trash="(id) => run(() => trashNote(id))"
+        @restore="(id) => run(() => restoreNote(id))"
       />
       <div class="section-label folder-heading">
         文件夹 <button aria-label="添加文件夹" @click="run(chooseFolder)">＋</button>
@@ -856,6 +870,11 @@ watch(
         aria-label="文档操作反馈"
       >
         <span>{{ c.notice.message }}</span><button
+          v-if="c.notice.restoreId && c.docs.get(c.notice.restoreId)?.trashed"
+          @click="run(() => restoreNote(c.notice!.restoreId!))"
+        >
+          撤销移入回收站</button
+        ><button
           v-if="c.notice.kind === 'conflict' && active?.resource"
           @click="run(() => c.reloadExternal(active!.id))"
         >

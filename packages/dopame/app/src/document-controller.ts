@@ -42,6 +42,10 @@ export interface Session {
   history: EngineState
   externalSteps: ExternalStep[]
   pendingCommit?: { taskId: string; snapshot: any }
+  // Missing flags keep schema-1 checkpoints live; text, resources and editing history remain intact.
+  trashed?: boolean
+  // Keep the first lifecycle request's base across later offline edits and retries.
+  trashPending?: { baseRevision: number }
 }
 export interface EditorBridge {
   flush(): void
@@ -66,7 +70,7 @@ export class DocumentController {
   loading = true
   connected = false
   workerError = ''
-  notice: { kind: string; message: string } | null = null
+  notice: { kind: string; message: string; restoreId?: string } | null = null
   composing = false
   preferences = { theme: 'light', sidebar: true, collaboration: false }
   bridge: EditorBridge | null = null
@@ -107,7 +111,8 @@ export class DocumentController {
     for (const fn of this.listeners) fn()
   }
   get active() {
-    return this.docs.get(this.activeId) ?? null
+    const d = this.docs.get(this.activeId)
+    return d && !d.trashed ? d : null
   }
   get rows() {
     return [...this.docs.values()].map((d) => ({
@@ -115,9 +120,11 @@ export class DocumentController {
       title: d.title,
       revision: d.revision,
       savedRevision: d.savedRevision,
-      dirty: this.dirty(d),
+      dirty: !d.trashed && this.dirty(d),
       mode: d.mode,
-      readOnly: d.readOnly
+      readOnly: d.readOnly,
+      trashed: !!d.trashed,
+      trashPending: !!d.trashPending
     }))
   }
   dirty(d: Session) {
@@ -143,8 +150,8 @@ export class DocumentController {
     this.dirtyResults.set(d, { text: d.text, baseline, dirty })
     return dirty
   }
-  message(kind: string, message: string) {
-    this.notice = { kind, message }
+  message(kind: string, message: string, restoreId?: string) {
+    this.notice = { kind, message, ...(restoreId ? { restoreId } : {}) }
     this.emit()
   }
   error(error: any) {
@@ -190,16 +197,29 @@ export class DocumentController {
           boundedText(d.text, '草稿')
           if (!Number.isSafeInteger(d.revision) || d.revision < 0 || !d.title)
             throw new Error('Invalid checkpoint')
+          if (d.trashed !== undefined && typeof d.trashed !== 'boolean')
+            throw new Error('Invalid checkpoint')
+          if (
+            d.trashPending !== undefined &&
+            (!d.trashPending ||
+              !Number.isSafeInteger(d.trashPending.baseRevision) ||
+              d.trashPending.baseRevision < -1)
+          )
+            throw new Error('Invalid checkpoint')
           this.docs.set(d.id, d)
         } catch {
           this.message('error', '有一份草稿无法读取，原恢复文件已保留，未自动重写')
         }
       }
       this.openIds = (Array.isArray(manifest?.openIds) ? manifest.openIds : []).filter(
-        (x: any) => typeof x === 'string' && this.docs.has(x)
+        (x: any) => typeof x === 'string' && this.docs.has(x) && !this.docs.get(x)!.trashed
       )
       this.closedIds = (Array.isArray(manifest?.closedIds) ? manifest.closedIds : []).filter(
-        (x: any) => typeof x === 'string' && this.docs.has(x) && !this.openIds.includes(x)
+        (x: any) =>
+          typeof x === 'string' &&
+          this.docs.has(x) &&
+          !this.docs.get(x)!.trashed &&
+          !this.openIds.includes(x)
       )
       this.activeId = this.openIds.includes(manifest?.activeId)
         ? manifest.activeId
@@ -235,7 +255,7 @@ export class DocumentController {
   }
   async rename(docId: string, title: string) {
     const d = this.docs.get(docId)
-    if (!d) return
+    if (!d || d.trashed) return
     boundedText(title, '标题', 800)
     if (!title.trim() || title === d.title) return
     d.title = title.trim()
@@ -245,7 +265,8 @@ export class DocumentController {
   }
   async activate(docId: string) {
     await this.flushActive()
-    if (!this.docs.has(docId)) throw new AgentError('DOCUMENT_NOT_FOUND', '文档不存在')
+    if (!this.docs.has(docId) || this.docs.get(docId)!.trashed)
+      throw new AgentError('DOCUMENT_NOT_FOUND', '文档不存在或已移入回收站')
     if (!this.openIds.includes(docId)) this.openIds.push(docId)
     this.closedIds = this.closedIds.filter((id) => id !== docId)
     this.activeId = docId
@@ -287,6 +308,7 @@ export class DocumentController {
     const same =
       inPlace &&
       [...this.docs.values()].find((d) => {
+        if (d.trashed) return false
         const resource = d.resource
         if (!resource || resource.kind !== target.kind) return false
         return resource.kind === 'handle' && target.kind === 'handle'
@@ -324,7 +346,7 @@ export class DocumentController {
     const report = (error: unknown, name: string) =>
       failures.push(name + ' · ' + (error instanceof Error ? error.message : String(error)))
     const resources = inPlace
-      ? [...this.docs.values()].flatMap((d) => (d.resource ? [d.resource] : []))
+      ? [...this.docs.values()].flatMap((d) => (d.resource && !d.trashed ? [d.resource] : []))
       : []
     const docs = await this.files.openFiles(report, resources)
     for (const d of docs) {
@@ -338,7 +360,9 @@ export class DocumentController {
   }
   async openHandle(handle: FileSystemFileHandle) {
     await this.ready
-    const resources = [...this.docs.values()].flatMap((d) => (d.resource ? [d.resource] : []))
+    const resources = [...this.docs.values()].flatMap((d) =>
+      d.resource && !d.trashed ? [d.resource] : []
+    )
     await this.import(await this.files.readHandle(handle, false, resources), true)
   }
   async closeTab(docId: string) {
@@ -357,9 +381,96 @@ export class DocumentController {
     await this.activate(docId)
     return this.active
   }
+  private detachDocument(docId: string) {
+    this.openIds = this.openIds.filter((id) => id !== docId)
+    this.closedIds = this.closedIds.filter((id) => id !== docId)
+    if (this.activeId === docId) this.activeId = this.openIds.at(-1) ?? ''
+  }
+  trash(docId: string) {
+    return this.changeTrash(docId, true)
+  }
+  async restoreTrash(docId: string) {
+    await this.changeTrash(docId, false)
+    if (!this.docs.get(docId)?.trashed) await this.activate(docId)
+  }
+  private async changeTrash(docId: string, trashed: boolean) {
+    await this.ready
+    if (this.activeId === docId) await this.finishComposition()
+    await this.enqueue(docId, async () => {
+      const d = this.docs.get(docId)
+      if (!d) throw new AgentError('DOCUMENT_NOT_FOUND', '文档不存在')
+      if (!!d.trashed === trashed) return
+      if (this.recoveryBlocked.has(docId) || d.pendingCommit)
+        throw new AgentError('RECOVERY_REQUIRED', '请先核对协作提交，再移动笔记')
+      if (this.activeId === docId) {
+        this.bridge?.flush()
+        if (this.bridge) d.history = this.bridge.capture()
+      }
+      const before = { trashed: d.trashed, pending: d.trashPending }
+      const openAt = this.openIds.indexOf(docId),
+        closedAt = this.closedIds.indexOf(docId)
+      const wasActive = this.activeId === docId
+      const timer = this.timers.get(docId)
+      if (timer) clearTimeout(timer)
+      this.timers.delete(docId)
+      d.trashPending = {
+        baseRevision: d.trashPending?.baseRevision ?? this.shared.get(docId) ?? d.revision
+      }
+      d.trashed = trashed
+      if (trashed) this.detachDocument(docId)
+      const fallback = this.activeId
+      this.emit()
+      const intent = { schema: 1, session: copy(d) }
+      try {
+        await this.files.putCheckpoint(docId, intent)
+        if (this.connected) {
+          try {
+            await this.syncTrash(d)
+          } catch (error: any) {
+            if (
+              [
+                'DOCUMENT_BUSY',
+                'REVISION_CONFLICT',
+                'PERMISSION_DENIED',
+                'INVALID_ARGUMENT'
+              ].includes(error?.code)
+            )
+              throw error
+            this.workerError = '回收站协作状态待同步，笔记内容已保留'
+            this.transportFailure(error)
+          }
+        }
+      } catch (error) {
+        d.trashed = before.trashed
+        d.trashPending = before.pending
+        if (before.trashed) this.detachDocument(docId)
+        else {
+          if (openAt >= 0 && !this.openIds.includes(docId))
+            this.openIds.splice(Math.min(openAt, this.openIds.length), 0, docId)
+          if (closedAt >= 0 && !this.closedIds.includes(docId))
+            this.closedIds.splice(Math.min(closedAt, this.closedIds.length), 0, docId)
+          if (wasActive && this.activeId === fallback) this.activeId = docId
+        }
+        try {
+          await this.files.rollbackCheckpoint(docId, intent, { schema: 1, session: copy(d) })
+          await this.saveMetadata()
+        } finally {
+          this.schedule(d)
+          this.emit()
+        }
+        throw error
+      }
+      await this.saveMetadata()
+      this.message(
+        'success',
+        (trashed ? '已移入回收站' : '笔记已恢复') + (d.trashPending ? ' · 协作待同步' : ''),
+        trashed ? docId : undefined
+      )
+    })
+  }
   edit(docId: string, text: string, history?: EngineState) {
     const d = this.docs.get(docId)
-    if (!d || d.readOnly || d.mode === 'preview') return
+    if (!d || d.trashed || d.readOnly || d.mode === 'preview') return
     boundedText(text, '文档')
     if (history) d.history = history
     if (text === d.text) return
@@ -372,35 +483,52 @@ export class DocumentController {
   }
   updateHistory(docId: string, state: EngineState) {
     const d = this.docs.get(docId)
-    if (d) d.history = state
+    if (d && !d.trashed) d.history = state
   }
   private schedule(d: Session) {
-    const previous = this.timers.get(d.id)
+    const docId = d.id
+    const previous = this.timers.get(docId)
     if (previous) clearTimeout(previous)
     this.timers.set(
-      d.id,
+      docId,
       setTimeout(() => {
-        this.timers.delete(d.id)
-        void this.enqueue(d.id, () => this.persist(d)).catch((e) => this.error(e))
+        this.timers.delete(docId)
+        void this.enqueue(docId, async () => {
+          // Agent commits replace Session objects while an autosave waits in this queue.
+          const current = this.docs.get(docId)
+          if (current) await this.persist(current)
+        }).catch((e) => this.error(e))
       }, 120)
     )
   }
   private async persist(d: Session) {
+    if (this.docs.get(d.id) !== d)
+      throw new AgentError('REVISION_CONFLICT', '文档已更新，旧操作已停止；新内容已保留')
     if (this.recoveryBlocked.has(d.id))
       throw new AgentError('RECOVERY_REQUIRED', '提交状态正在核对，当前输入保留在编辑器中')
     const saved = copy(d)
     await this.files.putCheckpoint(d.id, { schema: 1, session: saved })
-    await this.sync(saved)
+    try {
+      await this.sync(saved)
+    } catch (error: any) {
+      if (!saved.trashPending) throw error
+      if (!['DOCUMENT_BUSY', 'REVISION_CONFLICT'].includes(error?.code))
+        this.transportFailure(error)
+      this.workerError = '回收站协作状态待核对，笔记和服务端内容均已保留'
+      this.message('info', this.workerError)
+    }
   }
   async flush(docId: string) {
-    const d = this.docs.get(docId)
-    if (!d) return
+    if (!this.docs.has(docId)) return
     const timer = this.timers.get(docId)
     if (timer) {
       clearTimeout(timer)
       this.timers.delete(docId)
     }
-    await this.enqueue(docId, () => this.persist(d))
+    await this.enqueue(docId, async () => {
+      const current = this.docs.get(docId)
+      if (current) await this.persist(current)
+    })
   }
   async flushActive() {
     await this.finishComposition()
@@ -444,13 +572,15 @@ export class DocumentController {
   }
   async reloadExternal(docId: string) {
     const d = this.docs.get(docId)
-    if (!d?.resource) return
+    if (!d?.resource || d.trashed) return
     await this.flush(docId)
     if (this.dirty(d)) {
       await this.create(d.title + ' · 磁盘冲突草稿', d.text, false)
       this.message('info', '当前输入已复制为独立草稿')
     }
     const stamp = await this.files.current(d.resource)
+    if (this.docs.get(docId) !== d || d.trashed)
+      throw new AgentError('REVISION_CONFLICT', '文档已更新，重新载入已停止；新内容已保留')
     const parsed = decodeFile(Uint8Array.from(atob(stamp.base64), (c) => c.charCodeAt(0)))
     d.text = parsed.text
     d.format = parsed.format
@@ -472,7 +602,7 @@ export class DocumentController {
     await this.finishComposition()
     this.bridge?.flush()
     const d = this.docs.get(docId)
-    if (!d) return
+    if (!d || d.trashed) return
     if (this.recoveryBlocked.has(d.id)) {
       if (as) {
         const draft = await this.preserveInput(d.id)
@@ -490,7 +620,7 @@ export class DocumentController {
     await this.finishComposition()
     this.bridge?.flush()
     const d = this.docs.get(docId)
-    if (!d) return
+    if (!d || d.trashed) return
     const exported = copy(d)
     const selected = await this.files.saveAsResource(d.title)
     await this.files.save(
@@ -574,7 +704,8 @@ export class DocumentController {
     const proposal = await this.proposal(proposalId)
     return this.enqueue(proposal.document.documentId, async () => {
       const d = this.docs.get(proposal.document.documentId)
-      if (!d) throw new AgentError('DOCUMENT_NOT_FOUND', '请先打开建议对应的文档')
+      if (!d || d.trashed) throw new AgentError('DOCUMENT_NOT_FOUND', '请先恢复建议对应的文档')
+      if (d.trashPending) throw new AgentError('DOCUMENT_BUSY', '请先同步回收站状态，再应用建议')
       if (this.recoveryBlocked.has(d.id))
         throw new AgentError('RECOVERY_REQUIRED', '请先核对待恢复提交')
       if (d.readOnly) throw new AgentError('PERMISSION_DENIED', '来源为只读，请先保存工作副本')
@@ -599,7 +730,12 @@ export class DocumentController {
       return snapshot(d)
     })
   }
-  private async saveInside(d: Session, selected?: { resource: Resource; stamp: Stamp | null }) {
+  private async saveInside(
+    session: Session,
+    selected?: { resource: Resource; stamp: Stamp | null }
+  ) {
+    const d = this.docs.get(session.id)
+    if (!d || d.trashed) throw new AgentError('DOCUMENT_NOT_FOUND', '笔记已移入回收站')
     if (this.recoveryBlocked.has(d.id))
       throw new AgentError('RECOVERY_REQUIRED', '请先核对提交结果，未覆盖当前草稿')
     const before = copy(d),
@@ -637,12 +773,29 @@ export class DocumentController {
   }
   private async sync(d: Session) {
     if (!this.connected || this.recoveryBlocked.has(d.id)) return
+    if (d.trashPending) {
+      await this.syncTrash(d)
+      return
+    }
+    if (d.trashed) return
     const sent = snapshot(d)
     let expected = this.shared.get(sent.id)
     if (expected === undefined) {
       const current = await this.rpc('worker.documentStatus', { documentId: sent.id })
       expected = current?.revision ?? -1
       this.shared.set(sent.id, expected!)
+      if (current?.trashed) {
+        const local = this.docs.get(d.id)
+        if (local && !local.trashPending) {
+          if (this.activeId === local.id) this.bridge?.flush()
+          local.trashed = true
+          this.detachDocument(local.id)
+          await this.files.putCheckpoint(local.id, { schema: 1, session: copy(local) })
+          await this.saveMetadata()
+          this.emit()
+        }
+        return
+      }
     }
     if (expected! > sent.revision)
       throw new AgentError('REVISION_CONFLICT', '协作记录比本地草稿更新，需要核对后再同步', {
@@ -650,6 +803,36 @@ export class DocumentController {
       })
     await this.rpc('worker.publish', { snapshot: sent, expectedRevision: expected })
     this.shared.set(sent.id, sent.revision)
+  }
+  private async syncTrash(d: Session) {
+    const pending = d.trashPending
+    if (!pending) return
+    const sent = snapshot(d),
+      trashed = !!d.trashed
+    await this.rpc('worker.setTrash', {
+      snapshot: sent,
+      baseRevision: pending.baseRevision,
+      trashed
+    })
+    this.shared.set(d.id, sent.revision)
+    const current = this.docs.get(d.id)
+    const target =
+      current &&
+      !!current.trashed === trashed &&
+      current.trashPending?.baseRevision === pending.baseRevision
+        ? current
+        : d
+    const clean = copy(target)
+    delete clean.trashPending
+    await this.files.putCheckpoint(clean.id, { schema: 1, session: clean })
+    delete target.trashPending
+    delete d.trashPending
+    if (
+      this.workerError.startsWith('回收站') &&
+      ![...this.docs.values()].some((doc) => doc.trashPending)
+    )
+      this.workerError = ''
+    this.emit()
   }
   private transportFailure(error: any) {
     this.workerError = error?.message ?? '协作连接暂时不可用'
@@ -731,6 +914,7 @@ export class DocumentController {
     )
     await this.reconcilePending()
     for (const d of this.docs.values()) if (!this.recoveryBlocked.has(d.id)) await this.flush(d.id)
+    if (!this.connected) return
     this.running = true
     this.poll()
     this.emit()
@@ -983,6 +1167,8 @@ export class DocumentController {
         const isCreate = capability === 'documents.create'
         if (!d && !isCreate)
           throw new AgentError('DOCUMENT_NOT_FOUND', '文档未在当前私有工作区中恢复')
+        if (d?.trashed || d?.trashPending)
+          throw new AgentError('DOCUMENT_BUSY', '笔记已移入回收站或状态待同步')
         if (d) {
           const timer = this.timers.get(d.id)
           if (timer) {

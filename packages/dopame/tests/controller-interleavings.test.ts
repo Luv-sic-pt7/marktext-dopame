@@ -450,3 +450,442 @@ test('closed tabs retain unsaved text and engine state across restart and reopen
   expect(await restored.reopenClosedTab()).toBeNull()
   expect(restored.active?.text).toBe('第一篇正文')
 })
+
+test('trash moves active, inactive and closed same-name notes by ID and restores their complete sessions', async () => {
+  const a = await controller.create('同名笔记', '第一份 😀')
+  a.mode = 'source'
+  a.history = {
+    sourceText: a.text,
+    cursor: { anchor: { line: 0, ch: 2 }, focus: { line: 0, ch: 2 } }
+  }
+  await controller.save(a.id)
+  const resource = JSON.parse(JSON.stringify(a.resource)),
+    history = JSON.parse(JSON.stringify(a.history))
+  const saved = memory.records.get('private:notes/' + a.id + '.md')!.data.slice()
+  const b = await controller.create('同名笔记', '第二份未保存')
+  await controller.closeTab(a.id)
+  await controller.trash(a.id)
+  expect(controller.activeId).toBe(b.id)
+  expect(controller.closedIds).not.toContain(a.id)
+  expect(controller.rows.filter((row) => !row.trashed).map((row) => row.id)).toEqual([b.id])
+  expect(controller.docs.get(a.id)?.trashed).toBe(true)
+  expect(memory.records.get('private:notes/' + a.id + '.md')!.data).toEqual(saved)
+  await controller.restoreTrash(a.id)
+  expect(controller.activeId).toBe(a.id)
+  expect(controller.docs.get(a.id)).toMatchObject({
+    text: '第一份 😀',
+    mode: 'source',
+    resource,
+    history,
+    trashed: false
+  })
+  expect(controller.docs.get(b.id)?.text).toBe('第二份未保存')
+  await controller.trash(a.id)
+  expect(controller.activeId).toBe(b.id)
+  expect(controller.notice?.restoreId).toBe(a.id)
+  expect(controller.closedIds).not.toContain(a.id)
+  await controller.restoreTrash(a.id)
+  expect(controller.docs.get(a.id)?.history).toEqual(history)
+})
+
+test('offline trash and restoration survive restart and synchronize before new jobs', async () => {
+  const d = await controller.create('离线回收', '保留输入')
+  await controller.stopWorker()
+  controller = new DocumentController(new FilePort(memory.fs), {
+    async request(payload) {
+      return store.dispatch(payload)
+    }
+  })
+  await controller.ready
+  await controller.trash(d.id)
+  expect(controller.docs.get(d.id)?.trashPending?.baseRevision).toBe(0)
+  expect(controller.openIds).not.toContain(d.id)
+  call('admin.grant', store.adminToken, {
+    clientId: 'caller',
+    kind: 'document',
+    resource: d.id,
+    actions: ['read', 'write']
+  })
+  const queued = submit('documents.patch', {
+    document: documentRef(d.id, 0),
+    baseRevision: 0,
+    edits: [{ from: 0, to: 0, expectedText: '', text: '不应执行' }]
+  })
+  await controller.stopWorker()
+  controller = new DocumentController(new FilePort(memory.fs), {
+    async request(payload) {
+      return store.dispatch(payload)
+    }
+  })
+  await controller.ready
+  expect(controller.docs.get(d.id)?.trashed).toBe(true)
+  expect(controller.closedIds).not.toContain(d.id)
+  await controller.connectWorker(store.workerToken)
+  expect(store.row('SELECT trashed FROM documents WHERE id=?', d.id).trashed).toBe(1)
+  expect(state(queued.taskId)).toBe('cancelled')
+  expect(controller.docs.get(d.id)?.text).toBe('保留输入')
+  expect(controller.docs.get(d.id)?.trashPending).toBeUndefined()
+  await controller.stopWorker()
+  controller = new DocumentController(new FilePort(memory.fs), {
+    async request(payload) {
+      return store.dispatch(payload)
+    }
+  })
+  await controller.ready
+  await controller.restoreTrash(d.id)
+  controller.edit(d.id, '离线恢复后继续输入 😀')
+  await controller.save(d.id)
+  expect(controller.docs.get(d.id)?.savedRevision).toBe(1)
+  await controller.flush(d.id)
+  expect(controller.docs.get(d.id)?.trashPending?.baseRevision).toBe(0)
+  await controller.connectWorker(store.workerToken)
+  expect(store.row('SELECT text,revision,trashed FROM documents WHERE id=?', d.id)).toEqual({
+    text: '离线恢复后继续输入 😀',
+    revision: 1,
+    trashed: 0
+  })
+  expect(controller.docs.get(d.id)?.trashPending).toBeUndefined()
+})
+
+test('a claimed job blocks trash and a failed move leaves tabs and durable input available', async () => {
+  const d = await controller.create('执行中的笔记', 'abc')
+  call('admin.grant', store.adminToken, {
+    clientId: 'caller',
+    kind: 'document',
+    resource: d.id,
+    actions: ['read', 'write']
+  })
+  const entered = deferred(),
+    release = deferred()
+  intercept = async (payload, result) => {
+    if (payload.method === 'worker.claim' && result.ok && result.value) {
+      entered.resolve()
+      await release.promise
+    }
+    return result
+  }
+  const receipt = submit('documents.patch', {
+    document: documentRef(d.id, 0),
+    baseRevision: 0,
+    edits: [{ from: 0, to: 1, expectedText: 'a', text: 'A' }]
+  })
+  try {
+    await entered.promise
+    await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'DOCUMENT_BUSY' })
+    expect(controller.docs.get(d.id)?.trashed).not.toBe(true)
+    expect(controller.activeId).toBe(d.id)
+    expect(controller.openIds).toContain(d.id)
+    expect((await controller.files.checkpoint<any>(d.id)).session.trashed).not.toBe(true)
+    expect(store.row('SELECT trashed FROM documents WHERE id=?', d.id).trashed).toBe(0)
+  } finally {
+    release.resolve()
+  }
+  await until(() => state(receipt.taskId) === 'succeeded')
+  expect(controller.docs.get(d.id)?.text).toBe('Abc')
+})
+
+test('a lost trash acknowledgement keeps the intent and reconnects without reviving the document', async () => {
+  const d = await controller.create('不确定确认', '原文 😀')
+  let lost = false
+  intercept = async (payload, result) => {
+    if (!lost && payload.method === 'worker.setTrash' && result.ok) {
+      lost = true
+      throw new AgentError('TRANSPORT_TIMEOUT', '模拟回收确认丢失', undefined, true)
+    }
+    return result
+  }
+  await controller.trash(d.id)
+  expect(controller.docs.get(d.id)?.trashed).toBe(true)
+  expect(controller.docs.get(d.id)?.trashPending).toBeDefined()
+  expect(store.row('SELECT trashed FROM documents WHERE id=?', d.id).trashed).toBe(1)
+  await until(() => controller.connected && !controller.docs.get(d.id)?.trashPending)
+  expect(controller.openIds).not.toContain(d.id)
+  expect(store.row('SELECT text,trashed FROM documents WHERE id=?', d.id)).toEqual({
+    text: '原文 😀',
+    trashed: 1
+  })
+})
+
+test('offline restoration never rebases its intent over concurrent remote edits', async () => {
+  const d = await controller.create('冲突恢复', '基础内容')
+  await controller.trash(d.id)
+  await controller.stopWorker()
+  controller = new DocumentController(new FilePort(memory.fs), {
+    async request(payload) {
+      return store.dispatch(payload)
+    }
+  })
+  await controller.ready
+  await controller.restoreTrash(d.id)
+  controller.edit(d.id, '本地输入一')
+  controller.edit(d.id, '本地输入二')
+  await controller.flush(d.id)
+  call('worker.connect', store.workerToken, { instanceId: 'peer' })
+  call('worker.setTrash', store.workerToken, {
+    instanceId: 'peer',
+    snapshot: { id: d.id, title: d.title, text: '远端新版本', revision: 1, savedRevision: -1 },
+    baseRevision: 0,
+    trashed: false
+  })
+  call('worker.disconnect', store.workerToken, { instanceId: 'peer' })
+  await controller.connectWorker(store.workerToken)
+  expect(controller.connected).toBe(true)
+  expect(controller.docs.get(d.id)).toMatchObject({
+    text: '本地输入二',
+    revision: 2,
+    trashPending: { baseRevision: 0 }
+  })
+  expect(store.row('SELECT text,revision FROM documents WHERE id=?', d.id)).toEqual({
+    text: '远端新版本',
+    revision: 1
+  })
+  expect((await controller.files.checkpoint<any>(d.id)).session.text).toBe('本地输入二')
+  expect(controller.workerError).toContain('待核对')
+})
+
+test('an unresolved commit prevents moving a note to trash', async () => {
+  const d = await controller.create('待核对', '保存双方')
+  d.pendingCommit = {
+    taskId: crypto.randomUUID(),
+    snapshot: {
+      id: d.id,
+      title: d.title,
+      text: d.text,
+      revision: d.revision,
+      savedRevision: d.savedRevision
+    }
+  }
+  await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'RECOVERY_REQUIRED' })
+  expect(controller.docs.get(d.id)?.trashed).not.toBe(true)
+  expect(controller.activeId).toBe(d.id)
+  delete d.pendingCommit
+})
+
+test('a failed trash checkpoint leaves the note and its source available', async () => {
+  const d = await controller.create('写入失败', '未丢失的输入 😀')
+  await controller.save(d.id)
+  const saved = memory.records.get('private:notes/' + d.id + '.md')!.data.slice()
+  let failed = false
+  memory.hooks.before = async (path) => {
+    if (!failed && path === 'checkpoints/' + d.id + '.json' && d.trashed) {
+      failed = true
+      throw new AgentError('IO_ERROR', '模拟checkpoint写入失败', undefined, true)
+    }
+  }
+  await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'IO_ERROR' })
+  expect(controller.activeId).toBe(d.id)
+  expect(controller.openIds).toContain(d.id)
+  expect(controller.docs.get(d.id)).toMatchObject({ text: '未丢失的输入 😀', savedRevision: 0 })
+  expect(controller.docs.get(d.id)?.trashed).not.toBe(true)
+  expect((await controller.files.checkpoint<any>(d.id)).session.trashed).not.toBe(true)
+  expect(store.row('SELECT trashed FROM documents WHERE id=?', d.id).trashed).toBe(0)
+  expect(memory.records.get('private:notes/' + d.id + '.md')!.data).toEqual(saved)
+})
+
+test('a lost checkpoint acknowledgement rolls back only its own trash intent', async () => {
+  const d = await controller.create('落盘确认丢失', '唯一正文 😀')
+  let lost = false
+  memory.hooks.after = async (path, text) => {
+    if (!lost && path === 'checkpoints/' + d.id + '.json' && text.includes('"trashed":true')) {
+      lost = true
+      throw new AgentError('IO_ERROR', '模拟已落盘确认丢失', undefined, true)
+    }
+  }
+  await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'IO_ERROR' })
+  expect(controller.docs.get(d.id)?.trashed).not.toBe(true)
+  const record = await controller.files.checkpoint<any>(d.id)
+  expect(record.session.trashed).not.toBe(true)
+  expect(record.session.text).toBe('唯一正文 😀')
+  expect(store.row('SELECT trashed FROM documents WHERE id=?', d.id).trashed).toBe(0)
+  await controller.flush(d.id)
+})
+
+test('rollback never replaces a checkpoint changed by another writer', async () => {
+  const d = await controller.create('并发恢复记录', '本地原文')
+  let changed = false
+  memory.hooks.after = async (path, text) => {
+    if (!changed && path === 'checkpoints/' + d.id + '.json' && text.includes('"trashed":true')) {
+      changed = true
+      const record = JSON.parse(text)
+      record.session.text = '另一写入者的记录'
+      record.session.revision++
+      memory.records.set('private:' + path, {
+        data: new TextEncoder().encode(JSON.stringify(record)),
+        version: '999'
+      })
+      throw new AgentError('IO_ERROR', '模拟并发写入', undefined, true)
+    }
+  }
+  await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'IO_ERROR' })
+  await until(() => controller.notice?.kind === 'conflict')
+  expect(controller.docs.get(d.id)?.text).toBe('本地原文')
+  expect(
+    JSON.parse(
+      new TextDecoder().decode(memory.records.get('private:checkpoints/' + d.id + '.json')!.data)
+    ).session.text
+  ).toBe('另一写入者的记录')
+})
+
+test('a trash write failure resumes the debounce for input not yet checkpointed', async () => {
+  const d = await controller.create('未落盘输入', 'T0')
+  controller.edit(d.id, 'T1 新输入 😀')
+  let failed = false
+  memory.hooks.before = async (path) => {
+    if (!failed && path === 'checkpoints/' + d.id + '.json' && d.trashed) {
+      failed = true
+      throw new AgentError('IO_ERROR', '在intent写入前失败', undefined, true)
+    }
+  }
+  await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'IO_ERROR' })
+  expect(controller.docs.get(d.id)?.trashed).not.toBe(true)
+  await until(() => {
+    const record = memory.records.get('private:checkpoints/' + d.id + '.json')
+    return (
+      !!record && JSON.parse(new TextDecoder().decode(record.data)).session.text === 'T1 新输入 😀'
+    )
+  })
+  await until(
+    () => store.row('SELECT text FROM documents WHERE id=?', d.id)?.text === 'T1 新输入 😀'
+  )
+  expect(controller.docs.get(d.id)?.text).toBe('T1 新输入 😀')
+  expect(controller.activeId).toBe(d.id)
+})
+
+test.each(['autosave', 'explicit flush', 'explicit save'] as const)(
+  'a queued %s uses the session left by an Agent commit and later trash',
+  async (kind) => {
+    const d = await controller.create('排队自动保存', 'abc')
+    call('admin.grant', store.adminToken, {
+      clientId: 'caller',
+      kind: 'document',
+      resource: d.id,
+      actions: ['read', 'write']
+    })
+    const claimed = deferred(),
+      releaseClaim = deferred(),
+      saving = deferred(),
+      releaseSave = deferred()
+    intercept = async (payload, result) => {
+      if (payload.method === 'worker.claim' && result.ok && result.value) {
+        claimed.resolve()
+        await releaseClaim.promise
+      }
+      return result
+    }
+    const receipt = submit('documents.patch', {
+      document: documentRef(d.id, 0),
+      baseRevision: 0,
+      edits: [{ from: 0, to: 1, expectedText: 'a', text: 'A' }]
+    })
+    let save: Promise<unknown> | undefined,
+      trash: Promise<unknown> | undefined,
+      flushing: Promise<unknown> | undefined
+    try {
+      await claimed.promise
+      await expect(controller.trash(d.id)).rejects.toMatchObject({ code: 'DOCUMENT_BUSY' })
+      memory.hooks.before = async (path) => {
+        if (path === 'notes/' + d.id + '.md') {
+          saving.resolve()
+          await releaseSave.promise
+        }
+      }
+      save = controller.save(d.id)
+      await saving.promise
+      releaseClaim.resolve()
+      await Bun.sleep(0)
+      trash = controller.trash(d.id)
+      // Let trash enqueue behind the held save before adding a later explicit operation.
+      await Bun.sleep(0)
+      if (kind === 'explicit flush') flushing = controller.flush(d.id)
+      if (kind === 'explicit save')
+        flushing = controller.save(d.id).then(
+          () => 'saved',
+          (error) => error.code
+        )
+      await Bun.sleep(170)
+      releaseSave.resolve()
+      await save
+      await trash
+      const outcome = await flushing
+      if (kind === 'explicit save') expect(outcome).toBe('DOCUMENT_NOT_FOUND')
+      await Bun.sleep(25)
+      expect(state(receipt.taskId)).toBe('succeeded')
+      const record = JSON.parse(
+        new TextDecoder().decode(memory.records.get('private:checkpoints/' + d.id + '.json')!.data)
+      )
+      expect(record.session).toMatchObject({ text: 'Abc', revision: 1, trashed: true })
+      expect(controller.docs.get(d.id)).toMatchObject({ text: 'Abc', revision: 1, trashed: true })
+      expect(
+        new TextDecoder().decode(memory.records.get('private:notes/' + d.id + '.md')!.data)
+      ).toBe('abc')
+      expect(store.row('SELECT text,revision,trashed FROM documents WHERE id=?', d.id)).toEqual({
+        text: 'Abc',
+        revision: 1,
+        trashed: 1
+      })
+    } finally {
+      releaseClaim.resolve()
+      releaseSave.resolve()
+      await Promise.allSettled([save, trash, flushing])
+    }
+  }
+)
+
+test.each(['trash', 'Agent update'] as const)(
+  'a delayed disk reload cannot replace the editor after %s',
+  async (kind) => {
+    const d = await controller.create('迟到的磁盘载入', '原文')
+    await controller.save(d.id)
+    const entered = deferred(),
+      release = deferred()
+    const current = controller.files.current.bind(controller.files)
+    controller.files.current = async (resource) => {
+      const stamp = await current(resource)
+      entered.resolve()
+      await release.promise
+      return stamp
+    }
+    let loads = 0
+    controller.bridge = {
+      flush() {},
+      capture: () => ({}),
+      replaceExternal: () => null,
+      load() {
+        loads++
+      }
+    }
+    const loading = controller.reloadExternal(d.id).then(
+      () => 'loaded',
+      (error) => error.code
+    )
+    try {
+      await entered.promise
+      if (kind === 'trash') await controller.trash(d.id)
+      else {
+        call('admin.grant', store.adminToken, {
+          clientId: 'caller',
+          kind: 'document',
+          resource: d.id,
+          actions: ['read', 'write']
+        })
+        const receipt = submit('documents.patch', {
+          document: documentRef(d.id, 0),
+          baseRevision: 0,
+          edits: [{ from: 0, to: 2, expectedText: '原文', text: 'Agent新文' }]
+        })
+        await until(() => state(receipt.taskId) === 'succeeded')
+      }
+      release.resolve()
+      expect(await loading).toBe('REVISION_CONFLICT')
+      expect(loads).toBe(0)
+      const record = JSON.parse(
+        new TextDecoder().decode(memory.records.get('private:checkpoints/' + d.id + '.json')!.data)
+      )
+      if (kind === 'trash') expect(record.session.trashed).toBe(true)
+      else expect(record.session.text).toBe('Agent新文')
+    } finally {
+      release.resolve()
+      await loading
+    }
+  }
+)

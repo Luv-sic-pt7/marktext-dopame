@@ -334,6 +334,22 @@ export class FilePort {
   async putCheckpoint(documentId: string, value: any) {
     return this.jsonWrite('checkpoints/' + id(documentId) + '.json', value)
   }
+  // A failed write may have committed; never roll back a different writer's checkpoint.
+  async rollbackCheckpoint(documentId: string, expected: unknown, restored: unknown) {
+    const path = 'checkpoints/' + id(documentId) + '.json'
+    try {
+      const current = await this.fs.readText('private', path)
+      if (JSON.stringify(JSON.parse(current.text)) !== JSON.stringify(expected)) return false
+      const saved = await this.fs.writeFile('private', path, JSON.stringify(restored), {
+        ifVersion: current.version,
+        create: 'never'
+      })
+      this.versions.set(path, saved.version ?? (await this.fs.readText('private', path)).version)
+      return true
+    } catch (error) {
+      return ioError(error)
+    }
+  }
   async checkpointIds() {
     try {
       const r = await this.fs.list('private', 'checkpoints')
