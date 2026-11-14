@@ -2,6 +2,7 @@ import { test, expect, type AppWindow } from 'acde/test'
 import { Png } from 'acde/driver'
 import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -128,7 +129,7 @@ test('opening a document and applying or undoing formatting restores the editabl
   await app.keyboard.press('Home')
   await app.keyboard.press('shift+arrowright')
   await app.keyboard.press('shift+arrowright')
-  await app.locator('.format-toolbar').getByRole('button', { name: '加粗', exact: true }).click()
+  await clickCommand(app, '格式', '加粗')
   await app.keyboard.press('arrowright')
   await app.keyboard.press('End')
   await app.keyboard.insertText('续写 ·  ')

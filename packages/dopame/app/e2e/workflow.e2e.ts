@@ -136,7 +136,9 @@ test(
       await app.getByRole('button', { name: '查看建议差异', exact: true }).click()
       await app.screenshot({ path: join(evidence, 'native-suggestion-diff.png') })
       await app.getByRole('button', { name: '确认应用建议', exact: true }).click()
-      await expect(app.getByRole('status')).toContainText('建议已应用为 v1')
+      await expect(app.getByRole('status', { name: '文档操作反馈', exact: true })).toContainText(
+        '建议已应用为 v1'
+      )
       await app.getByRole('button', { name: '关闭协作任务', exact: true }).click()
       await app.getByRole('button', { name: '撤销', exact: true }).click()
       expect(

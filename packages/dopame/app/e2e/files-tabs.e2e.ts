@@ -111,9 +111,15 @@ test('closed external-file drafts reopen after reload without writing to the sou
   const source = app.getByRole('textbox', { name: 'Markdown 源码', exact: true })
   await source.press('ctrl+end')
   await source.type('尚未保存的草稿 😀')
+  expect(await sourceText(app)).toBe(original + '尚未保存的草稿 😀')
   await source.press('ctrl+w')
   await expect(app.getByRole('tab')).toHaveCount(0)
   expect(readFileSync(path, 'utf8')).toBe(original)
+  const checkpoint = await app.evaluate<any>(
+    '(async()=>{const {fs}=await import("acde:fs");const list=await fs.list("private","checkpoints");const record=JSON.parse((await fs.readText("private","checkpoints/"+list.entries[0].name)).text);return {text:record.session.text,sourceText:record.session.history.sourceText,muyaText:record.session.history.muyaText,cursor:record.session.history.cursor}})()'
+  )
+  expect(checkpoint.text).toBe(original + '尚未保存的草稿 😀')
+  expect(checkpoint.sourceText).toBe(original + '尚未保存的草稿 😀')
   await app.reload()
   const reopen = app.getByRole('button', { name: '恢复关闭标签', exact: true })
   await expect(reopen).not.toBeDisabled()
@@ -124,6 +130,9 @@ test('closed external-file drafts reopen after reload without writing to the sou
   )
   expect(await sourceText(app)).toBe(original + '尚未保存的草稿 😀')
   await expect(app.locator('.statusbar')).toContainText('有未保存修改')
+  expect(
+    await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getCursor()')
+  ).toEqual(checkpoint.cursor.focus)
   expect(readFileSync(path, 'utf8')).toBe(original)
   expect((await app.console({ level: 'errors' })).entries).toEqual([])
   expect((await app.network({ failed: true })).entries).toEqual([])

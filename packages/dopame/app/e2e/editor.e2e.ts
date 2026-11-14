@@ -30,7 +30,9 @@ test('imported files save to private working copies and export to an explicit de
   expect(readFileSync(original, 'utf8')).toBe('# 导入内容\n\n原文件保留。\n')
   await acde.chooseSaveFile(exported)
   await app.getByRole('button', { name: '导出', exact: true }).click()
-  await expect(app.getByRole('status')).toContainText('已导出')
+  await expect(app.getByRole('status', { name: '文档操作反馈', exact: true })).toContainText(
+    '已导出'
+  )
   expect(readFileSync(exported, 'utf8').includes('工作副本新输入 😀')).toBe(true)
   await expect(app.locator('.storage-location')).toContainText('保存到私有笔记')
   await app.screenshot({ path: join(evidence, 'native-import-export.png') })
@@ -296,7 +298,9 @@ test('untouched BOM/CRLF bytes survive mode changes and save; conflicting disk c
   const external = Buffer.from('# 外部已经修改\n')
   await Bun.write(path, external)
   await app!.getByRole('button', { name: '保存', exact: true }).click()
-  await expect(app!.getByRole('status')).toContainText('磁盘内容已变化')
+  await expect(app!.getByRole('status', { name: '文档操作反馈', exact: true })).toContainText(
+    '磁盘内容已变化'
+  )
   expect(readFileSync(path).equals(external)).toBe(true)
   expect(
     await app!.evaluate<boolean>(

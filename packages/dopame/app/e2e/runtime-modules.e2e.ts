@@ -1,0 +1,63 @@
+import { test, expect } from 'acde/test'
+
+test('system collaboration skips rich rendering and the native input bridge preserves files and reopened drafts', async ({
+  acde
+}) => {
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  const empty = app.getByRole('heading', { name: '给下一个想法留一页', exact: true })
+  const windows = async () =>
+    (await acde.webs())
+      .filter((web) => web.app)
+      .map((web) => web.name)
+      .sort()
+  await expect(empty).toBeVisible()
+  await expect(app.locator('.mu-editor')).toHaveCount(0)
+  await expect(app.locator('.CodeMirror')).toHaveCount(1)
+  const initialWindows = await windows()
+  await app
+    .getByRole('complementary', { name: '文档导航', exact: true })
+    .getByRole('button', { name: /^协作中心/ })
+    .click()
+  const panel = app.getByRole('complementary', { name: '协作任务', exact: true })
+  await expect(panel.getByRole('status', { name: '协作连接', exact: true })).toHaveText('尚未配对')
+  await panel.getByRole('button', { name: '刷新任务', exact: true }).click()
+  expect(await windows()).toEqual(initialWindows)
+  await expect(app.locator('.mu-editor')).toHaveCount(0)
+  await expect(app.locator('.CodeMirror')).toHaveCount(1)
+  await panel.getByRole('button', { name: '关闭协作任务', exact: true }).click()
+  await app.getByRole('button', { name: '新建', exact: true }).click()
+  await expect(app.locator('.mu-editor')).toHaveCount(1)
+  await expect(app.locator('.CodeMirror')).toHaveCount(1)
+  await app.locator('.mu-editor .mu-content[contenteditable="true"]').first().click()
+  await app.keyboard.insertText('模块按需加载 中文 😀')
+  await app.getByRole('button', { name: '源码', exact: true }).click()
+  const sourceText = () =>
+    app.evaluate<string>('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+  const saved = await sourceText()
+  expect(saved.trim()).toBe('模块按需加载 中文 😀')
+  await app.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(app.locator('.statusbar')).toContainText('已保存')
+  const disk = () =>
+    app.evaluate<string>(
+      '(async()=>{const {fs}=await import("acde:fs");const {entries}=await fs.list("private","notes");return (await fs.readText("private","notes/"+entries[0].name)).text})()'
+    )
+  expect(await disk()).toBe(saved)
+  const source = app.getByRole('textbox', { name: 'Markdown 源码', exact: true })
+  await source.press('ctrl+end')
+  await source.type('未保存草稿')
+  const draft = await sourceText()
+  await source.press('ctrl+w')
+  await expect(app.getByRole('tab')).toHaveCount(0)
+  await expect(empty).toBeVisible()
+  await app.reload()
+  await expect(empty).toBeVisible()
+  await app.getByRole('button', { name: '恢复关闭标签', exact: true }).click()
+  await expect(app.getByRole('tab')).toHaveCount(1)
+  await expect(app.getByRole('textbox', { name: 'Markdown 源码', exact: true })).toBeVisible()
+  expect(await sourceText()).toBe(draft)
+  expect(await disk()).toBe(saved)
+  await expect(app.locator('.statusbar')).toContainText('有未保存修改')
+  expect((await app.console({ level: 'errors' })).entries).toEqual([])
+  expect((await app.network({ failed: true })).entries).toEqual([])
+})

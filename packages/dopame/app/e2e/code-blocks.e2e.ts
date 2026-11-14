@@ -1,6 +1,7 @@
 import { test, expect, type AppWindow } from 'acde/test'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -24,8 +25,8 @@ test('source code-block insertion preserves selected Unicode and embedded fences
   const original = 'const value = "中文 😀";\nconst fence = "```";'
   await createSource(app, original)
   await app.getByRole('textbox', { name: 'Markdown 源码', exact: true }).press('ctrl+a')
-  const insert = app.getByRole('button', { name: '代码块', exact: true })
-  await insert.click()
+  const insert = app.getByRole('button', { name: '插入', exact: true })
+  await clickCommand(app, '插入', '代码块')
   await expect.poll(() => sourceText(app)).toBe('````\n' + original + '\n````')
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect.poll(() => sourceText(app)).toBe(original)
@@ -52,7 +53,7 @@ test('rich code blocks accept language suggestions, continued input and a saved 
   await createSource(app, paragraph)
   await app.getByRole('button', { name: '富文本', exact: true }).click()
   await app.locator('.mu-editor p.mu-paragraph').click()
-  await app.getByRole('button', { name: '代码块', exact: true }).click()
+  await clickCommand(app, '插入', '代码块')
   const body = app.getByRole('textbox', { name: '代码正文', exact: true })
   await expect(app.locator('.mu-editor p.mu-paragraph')).toHaveText(paragraph)
   await expect(app.locator('pre.mu-code-block')).toHaveCount(1)
@@ -103,7 +104,7 @@ test('rich code blocks accept language suggestions, continued input and a saved 
   await expect(language).toHaveText('python')
   await expect.poll(() => body.evaluate((element) => element.textContent)).toBe(expected)
   await app.getByRole('button', { name: '预览', exact: true }).click()
-  await expect(app.getByRole('button', { name: '代码块', exact: true })).toBeDisabled()
+  await expect(app.getByRole('button', { name: '插入', exact: true })).toBeDisabled()
   await app.getByRole('button', { name: '源码', exact: true }).click()
   expect(await sourceText(app)).toBe(saved)
   expect((await app.console({ level: 'errors' })).entries).toEqual([])

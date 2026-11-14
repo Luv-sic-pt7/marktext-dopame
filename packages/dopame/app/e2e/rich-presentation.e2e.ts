@@ -1,6 +1,7 @@
 import { test, expect, type AppWindow } from 'acde/test'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -52,10 +53,10 @@ test('strikethrough stays rendered when selected while source, copy, undo and sa
   await expect(app.locator('.mu-editor del.mu-inline-rule')).toHaveText('中文删除')
   expect(await app.evaluate<string>('getSelection()?.toString() ?? ""')).toBe('中文删除')
   await expectHiddenMarkers(app, 2)
-  const strike = app.locator('.format-toolbar').getByRole('button', { name: '删除线', exact: true })
-  await strike.click()
+  const strike = () => clickCommand(app, '格式', '删除线')
+  await strike()
   await expect(app.locator('.mu-editor del.mu-inline-rule')).toHaveCount(0)
-  await strike.click()
+  await strike()
   await expectHiddenMarkers(app, 2)
   await acde.setClipboard('旧的剪贴板内容')
   await app.keyboard.press('ctrl+c')
@@ -89,7 +90,7 @@ test('hidden delimiters preserve formatted typing and deletion without hiding li
   await acde.chooseFiles(path)
   await app.getByRole('button', { name: '原位打开文件', exact: true }).click()
   await selectSourceText(app, original.indexOf('尾部'), 2)
-  await app.locator('.format-toolbar').getByRole('button', { name: '删除线', exact: true }).click()
+  await clickCommand(app, '格式', '删除线')
   await expectHiddenMarkers(app, 4)
   await app.keyboard.insertText('替换😀')
   await expect(app.locator('.mu-editor del.mu-inline-rule').last()).toHaveText('替换😀')
@@ -129,9 +130,9 @@ test('caret navigation does not enter the zero-size strikethrough delimiters', a
   await acde.chooseFiles(path)
   await app.getByRole('button', { name: '原位打开文件', exact: true }).click()
   await selectSourceText(app, original.indexOf('中文'), 2)
-  const strike = app.locator('.format-toolbar').getByRole('button', { name: '删除线', exact: true })
-  await strike.click()
-  await strike.click()
+  const strike = () => clickCommand(app, '格式', '删除线')
+  await strike()
+  await strike()
   await expectHiddenMarkers(app, 2)
   await app.keyboard.press('right')
   const caretIsInsideMarker = () =>

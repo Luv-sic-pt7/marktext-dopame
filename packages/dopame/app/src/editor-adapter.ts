@@ -1,6 +1,5 @@
 import CodeMirror from 'codemirror'
-import 'codemirror/lib/codemirror.css'
-import 'codemirror/mode/gfm/gfm'
+import { createSourceEditor } from './source-editor'
 import { matchString } from '@muyajs/core/utils/search.ts'
 import { getBlock } from '@muyajs/core/utils/dom.ts'
 import {
@@ -221,7 +220,8 @@ export class EditorAdapter implements EditorBridge {
     readonly richHost: HTMLElement,
     readonly sourceHost: HTMLElement,
     nativeSelection = false,
-    private readonly onContextChange: () => void = () => {}
+    private readonly onContextChange: () => void = () => {},
+    sourceEditor?: CodeMirror.Editor
   ) {
     if (!pluginsRegistered) {
       for (const p of [
@@ -250,19 +250,11 @@ export class EditorAdapter implements EditorBridge {
     })
     this.muya.init({ focus: false })
     this.muya.domNode.setAttribute('aria-label', '富文本正文')
-    this.source = CodeMirror(sourceHost, {
-      value: '',
-      mode: 'gfm',
-      lineNumbers: true,
-      lineWrapping: true,
-      tabSize: 2,
-      indentUnit: 2,
-      inputStyle: 'textarea',
-      extraKeys: {
-        'Ctrl-S': () => void controller.save().catch((e: unknown) => controller.error(e))
-      }
-    })
-    this.source.getInputField().setAttribute('aria-label', 'Markdown 源码')
+    this.source =
+      sourceEditor ??
+      createSourceEditor(sourceHost, () => {
+        void controller.save().catch((e: unknown) => controller.error(e))
+      })
     if (nativeSelection)
       this.nativeCaret = new NativeCaret(
         richHost,
@@ -398,6 +390,8 @@ export class EditorAdapter implements EditorBridge {
           for (const step of d.externalSteps) this.replaceSource(step.after)
         } else this.replaceSource(d.text)
         this.setCursor(d.history.cursor)
+        if (d.history.cursor?.anchor && d.history.cursor?.focus)
+          this.source.setSelection(d.history.cursor.anchor, d.history.cursor.focus)
       } else if (oldMode === 'source' && d.mode !== 'source') {
         if (this.canonical(this.muya.getMarkdown()) !== d.text) this.muya.replaceContent(d.text)
         this.setCursor({
@@ -745,17 +739,63 @@ export class EditorAdapter implements EditorBridge {
     this.focus()
   }
   heading(level: number) {
-    if (this.currentMode === 'preview') return
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview' ||
+      this.controller.composing
+    )
+      return
     if (this.currentMode === 'source') {
       const p = this.source.getCursor()
       const line = this.source.getLine(p.line)
+      this.source.getDoc().changeGeneration(true)
       this.source.replaceRange(
         '#'.repeat(level) + ' ' + line.replace(/^#{1,6}\s+/, ''),
         { line: p.line, ch: 0 },
         { line: p.line, ch: line.length },
         '+heading'
       )
-    } else this.muya.updateParagraph('heading ' + level)
+      this.source.getDoc().changeGeneration(true)
+    } else {
+      this.muya.flush()
+      const history = this.muya.editor.history
+      history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+      this.muya.updateParagraph('heading ' + level)
+      this.muya.flush()
+      history.cutoff()
+    }
+    this.flush()
+    this.focus()
+  }
+  insertHorizontalRule() {
+    if (
+      !this.controller.active ||
+      this.controller.active.readOnly ||
+      this.currentMode === 'preview' ||
+      this.controller.composing
+    )
+      return
+    if (this.currentMode === 'source') {
+      const current = this.source.getCursor('to')
+      const line = this.source.getLine(current.line)
+      const from = { line: current.line, ch: line.length }
+      const text = (line.length ? '\n\n' : '') + '---\n\n'
+      const cursor = this.source.indexFromPos(from) + text.length
+      this.source.getDoc().changeGeneration(true)
+      this.source.operation(() => {
+        this.source.replaceRange(text, from, from, '+horizontal-rule')
+        this.source.setCursor(this.source.posFromIndex(cursor))
+      })
+      this.source.getDoc().changeGeneration(true)
+    } else {
+      this.muya.flush()
+      const history = this.muya.editor.history
+      history.cutoff(this.muya.editor.selection.getSelection() ?? undefined)
+      this.muya.updateParagraph('hr')
+      this.muya.flush()
+      history.cutoff()
+    }
     this.flush()
     this.focus()
   }

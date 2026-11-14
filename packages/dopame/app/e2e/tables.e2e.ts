@@ -1,6 +1,7 @@
 import { test, expect, type AppWindow } from 'acde/test'
 import { resolve, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -49,7 +50,7 @@ test('toolbar inserts editable tables from a fresh document and from title-input
   await acde.open('marktext-dopame')
   const app = acde.window('marktext-dopame')
   await app.getByRole('button', { name: '新建', exact: true }).click()
-  await app.getByRole('button', { name: '插入表格', exact: true }).click()
+  await clickCommand(app, '插入', '插入表格')
   const picker = app.getByRole('dialog', { name: '插入表格', exact: true })
   await expect(picker).toBeVisible()
   await picker.getByRole('textbox', { name: '表格行数', exact: true }).fill('3')
@@ -81,7 +82,7 @@ test('toolbar inserts editable tables from a fresh document and from title-input
   ).toBe(firstMarkdown)
   await app.getByRole('button', { name: '新建', exact: true }).click()
   await app.getByRole('textbox', { name: '笔记标题', exact: true }).fill('从标题插入表格')
-  await app.getByRole('button', { name: '插入表格', exact: true }).click()
+  await clickCommand(app, '插入', '插入表格')
   await expect(picker).toBeVisible()
   await picker.getByRole('button', { name: '2 行 3 列', exact: true }).hover()
   await picker.getByRole('button', { name: '2 行 3 列', exact: true }).click()
@@ -90,7 +91,7 @@ test('toolbar inserts editable tables from a fresh document and from title-input
   await expect(app.getByRole('table').getByRole('textbox').first()).toBeFocused()
   await app.keyboard.insertText('标题切换后仍能输入')
   await expect(app.getByRole('table').getByRole('cell').first()).toContainText('标题切换后仍能输入')
-  await app.getByRole('button', { name: '插入表格', exact: true }).click()
+  await clickCommand(app, '插入', '插入表格')
   await picker.getByRole('textbox', { name: '表格行数', exact: true }).click()
   await app.keyboard.press('Escape')
   await expect(picker).toHaveCount(0)

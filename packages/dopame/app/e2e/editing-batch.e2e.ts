@@ -1,6 +1,7 @@
 import { test, expect, type AppWindow } from 'acde/test'
 import { resolve, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -325,22 +326,22 @@ test('strikethrough toggles in source and rich modes and remains undoable', asyn
   const text = '中文 😀和文字'
   await createSource(app, text)
   await app.getByRole('textbox', { name: 'Markdown 源码', exact: true }).press('ctrl+a')
-  const strike = app.getByRole('button', { name: '删除线', exact: true })
-  await strike.click()
+  const strike = () => clickCommand(app, '格式', '删除线')
+  await strike()
   await expect.poll(() => sourceText(app)).toBe('~~' + text + '~~')
-  await strike.click()
+  await strike()
   await expect.poll(() => sourceText(app)).toBe(text)
   await app.keyboard.press('ctrl+shift+x')
   await app.getByRole('button', { name: '富文本', exact: true }).click()
   await expect(app.locator('.mu-editor del')).toContainText(text)
-  await strike.click()
+  await strike()
   await expect(app.locator('.mu-editor del')).toHaveCount(0)
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect(app.locator('.mu-editor del')).toContainText(text)
   await app.getByRole('button', { name: '源码', exact: true }).click()
   expect((await sourceText(app)).trimEnd()).toBe('~~' + text + '~~')
   await app.getByRole('button', { name: '预览', exact: true }).click()
-  await expect(strike).toBeDisabled()
+  await expect(app.getByRole('button', { name: '格式', exact: true })).toBeDisabled()
 })
 
 test('slash insertion filters by Chinese labels, accepts keyboard selection and dismisses with Escape', async ({

@@ -1,6 +1,7 @@
 import { test, expect, type AppWindow } from 'acde/test'
 import { resolve, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
+import { clickCommand } from './command-helpers'
 
 const evidence =
   process.env.MARKTEXT_EVIDENCE ??
@@ -28,21 +29,21 @@ test('source paragraph conversion replaces block markers and undo keeps the prec
   const original = '首项中文 😀\n次项内容'
   await createSource(app, original)
   const input = app.getByRole('textbox', { name: 'Markdown 源码', exact: true })
-  const type = app.getByRole('combobox', { name: '段落类型', exact: true })
+  const type = app.getByRole('button', { name: '段落类型', exact: true })
   await input.press('ctrl+a')
-  await type.selectOption('ul-bullet')
+  await clickCommand(app, '段落类型', '无序列表')
   await expect.poll(() => sourceText(app)).toBe('- 首项中文 😀\n- 次项内容')
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect.poll(() => sourceText(app)).toBe(original)
-  await type.selectOption('ol-order')
+  await clickCommand(app, '段落类型', '有序列表')
   await expect.poll(() => sourceText(app)).toBe('1. 首项中文 😀\n2. 次项内容')
-  await type.selectOption('blockquote')
+  await clickCommand(app, '段落类型', '引用')
   await expect.poll(() => sourceText(app)).toBe('> 首项中文 😀\n> 次项内容')
-  await type.selectOption('paragraph')
+  await clickCommand(app, '段落类型', '正文')
   await expect.poll(() => sourceText(app)).toBe(original)
   await app.getByRole('button', { name: '预览', exact: true }).click()
   await expect(type).toBeDisabled()
-  await expect(app.getByRole('button', { name: '增加缩进', exact: true })).toBeDisabled()
+  await expect(app.getByRole('button', { name: '格式', exact: true })).toBeDisabled()
   await cleanRuntime(app)
 })
 
@@ -54,7 +55,7 @@ test('rich list creation continues items and exits an empty item without losing 
   await app.getByRole('button', { name: '新建', exact: true }).click()
   await app.locator('.mu-editor [contenteditable="true"]').first().click()
   await app.keyboard.insertText('首项')
-  await app.getByRole('combobox', { name: '段落类型', exact: true }).selectOption('ul-bullet')
+  await clickCommand(app, '段落类型', '无序列表')
   await app.keyboard.press('End')
   await app.keyboard.press('Enter')
   await app.keyboard.insertText('次项')
@@ -81,9 +82,9 @@ test('list Tab and toolbar indentation preserve items and remain independently u
   await expect(app.locator('.mu-editor li li')).toHaveCount(1)
   await app.keyboard.press('shift+tab')
   await expect(app.locator('.mu-editor li li')).toHaveCount(0)
-  await app.getByRole('button', { name: '增加缩进', exact: true }).click()
+  await clickCommand(app, '段落类型', '增加缩进')
   await expect(app.locator('.mu-editor li li')).toHaveCount(1)
-  await app.getByRole('button', { name: '减少缩进', exact: true }).click()
+  await clickCommand(app, '段落类型', '减少缩进')
   await expect(app.locator('.mu-editor li li')).toHaveCount(0)
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   await expect(app.locator('.mu-editor li li')).toHaveCount(1)
@@ -92,9 +93,9 @@ test('list Tab and toolbar indentation preserve items and remain independently u
   await input.press('ctrl+end')
   await input.press('arrowup')
   await input.press('end')
-  await app.getByRole('button', { name: '减少缩进', exact: true }).click()
+  await clickCommand(app, '段落类型', '减少缩进')
   expect((await sourceText(app)).trimEnd()).toBe('- 首项\n- 次项')
-  await app.getByRole('button', { name: '增加缩进', exact: true }).click()
+  await clickCommand(app, '段落类型', '增加缩进')
   expect((await sourceText(app)).trimEnd()).toBe('- 首项\n  - 次项')
   await app.getByRole('button', { name: '撤销', exact: true }).click()
   expect((await sourceText(app)).trimEnd()).toBe('- 首项\n- 次项')

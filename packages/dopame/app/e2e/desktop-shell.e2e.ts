@@ -49,7 +49,13 @@ test('the launcher lives in the manager header and leaves editor text and sideba
   await find.fill('查找目标')
   await app.getByRole('button', { name: '下一处', exact: true }).click()
   await expect(app.getByRole('status', { name: '查找结果', exact: true })).toHaveText('2 / 2')
-  await expect(app.getByRole('button', { name: '删除线', exact: true })).toBeVisible()
+  await app.getByRole('button', { name: '格式', exact: true }).click()
+  await expect(
+    app
+      .getByRole('menu', { name: '格式', exact: true })
+      .getByRole('menuitem', { name: '删除线', exact: true })
+  ).toBeVisible()
+  await app.keyboard.press('Escape')
   expect((await app.console({ level: 'errors' })).entries).toEqual([])
   expect((await desktop.console({ level: 'errors' })).entries).toEqual([])
   expect((await app.network({ failed: true })).entries).toEqual([])

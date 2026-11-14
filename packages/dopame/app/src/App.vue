@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  ref,
+  watch
+} from 'vue'
 import { window as nativeWindow } from 'acde:window'
 import { outline } from '../../protocol'
-import { EditorAdapter } from './editor-adapter'
+import type { EditorAdapter } from './editor-adapter'
 import { DocumentController } from './document-controller'
 import { useUiStore } from './ui-store'
+import CommandMenu from './CommandMenu.vue'
+import NoteNavigator from './NoteNavigator.vue'
+import type { CommandMenuItem } from './command-menu'
+import { createSourceEditor } from './source-editor'
+
+const CollaborationPanel = defineAsyncComponent(() => import('./CollaborationPanel.vue'))
 
 const props = defineProps<{ controller: DocumentController; nativeSelection?: boolean }>()
 const c = props.controller,
@@ -17,6 +31,27 @@ const rows = computed(() => {
   ui.version
   return c.rows
 })
+const notes = computed(() =>
+  rows.value.map((row) => {
+    const d = c.docs.get(row.id)!
+    const location =
+      d.resource?.kind === 'root'
+        ? d.resource.root === 'private'
+          ? '私有笔记'
+          : d.resource.path
+        : d.resource?.name || '私有草稿'
+    return {
+      ...row,
+      open: c.openIds.includes(row.id),
+      detail: location + ' · ' + row.id.slice(0, 8)
+    }
+  })
+)
+const sidebarHidden = ref(false),
+  outlineHidden = ref(false)
+const editingDisabled = computed(
+  () => !active.value || active.value.readOnly || active.value.mode === 'preview'
+)
 const tabs = computed(() => {
   ui.version
   return c.openIds.map((id) => c.docs.get(id)).filter(Boolean)
@@ -32,6 +67,7 @@ const rich = ref<HTMLElement | null>(null),
   source = ref<HTMLElement | null>(null)
 const findInput = ref<HTMLInputElement | null>(null),
   replacementInput = ref<HTMLInputElement | null>(null)
+const reopenButton = ref<HTMLButtonElement | null>(null)
 const titleDraft = ref(''),
   titleEditing = ref(false)
 const roots = ref<any[]>([]),
@@ -46,6 +82,9 @@ const closeDialog = ref(false),
 let adapter: EditorAdapter | null = null,
   unsubscribe: () => void = () => {},
   activityTimer: ReturnType<typeof setInterval> | null = null
+let sourceEditor: ReturnType<typeof createSourceEditor> | undefined
+let editorLoading: Promise<EditorAdapter | null> | null = null,
+  disposed = false
 let lastId = '',
   lastMode = '',
   lastResource = '',
@@ -58,6 +97,42 @@ const run = async (fn: () => any) => {
   } catch (error) {
     c.error(error)
   }
+}
+async function ensureEditor() {
+  if (adapter) return adapter
+  if (editorLoading) return editorLoading
+  editorLoading = import('./editor-adapter')
+    .then(({ EditorAdapter }) => {
+      if (disposed) return null
+      adapter = new EditorAdapter(
+        c,
+        rich.value!,
+        source.value!,
+        !!props.nativeSelection,
+        () => {
+          selectionTick.value++
+        },
+        sourceEditor
+      )
+      const d = c.active
+      if (d) {
+        adapter.load(d)
+        lastId = d.id
+        lastMode = d.mode
+        lastResource = JSON.stringify(d.resource)
+        void focusActiveEditor()
+        if (ui.searchOpen) search()
+      }
+      return adapter
+    })
+    .catch((error) => {
+      c.error(error)
+      return null
+    })
+    .finally(() => {
+      editorLoading = null
+    })
+  return editorLoading
 }
 async function focusActiveEditor() {
   const id = c.activeId
@@ -83,9 +158,27 @@ async function focusActiveEditor() {
     return
   adapter.focus()
 }
+function uniqueTitle(base = '未命名文档') {
+  const titles = new Set(c.rows.map((d) => d.title))
+  let title = base
+  for (let suffix = 2; titles.has(title); suffix++) title = base + ' ' + suffix
+  return title
+}
 const newDoc = () =>
   run(async () => {
-    await c.create()
+    await c.create(uniqueTitle())
+    await nextTick()
+    await ensureEditor()
+    adapter?.focus()
+  })
+const duplicateDoc = (id: string) =>
+  run(async () => {
+    adapter?.flush()
+    await c.flushActive()
+    const original = c.docs.get(id)!
+    const mode = original.mode
+    await c.create(uniqueTitle(original.title + ' 副本'), original.text)
+    await c.mode(mode)
     await nextTick()
     adapter?.focus()
   })
@@ -115,17 +208,6 @@ const status = computed(() => {
   return d.readOnly ? '只读来源 · 可另存为' : c.dirty(d) ? '有未保存修改' : '已保存'
 })
 const wordCount = computed(() => [...(active.value?.text ?? '').replace(/\s/g, '')].length)
-const safeDate = (date: string) => {
-  try {
-    return new Intl.DateTimeFormat('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(new Date(date))
-  } catch {
-    return '—'
-  }
-}
 async function refreshRoots() {
   loadingFiles.value = true
   try {
@@ -177,6 +259,9 @@ async function activate(id: string) {
 }
 async function closeTab(id: string) {
   await c.closeTab(id)
+  await nextTick()
+  if (!c.active) reopenButton.value?.focus()
+  else adapter?.focus()
 }
 const reopenClosedTab = () =>
   run(async () => {
@@ -242,16 +327,161 @@ function heading(level: number) {
 function insertTable() {
   adapter?.insertTable()
 }
-function convertParagraph(event: Event) {
-  const menu = event.target as HTMLSelectElement
-  adapter?.convertParagraph(menu.value as Parameters<EditorAdapter['convertParagraph']>[0])
-  menu.value = ''
+function convertParagraph(command: string) {
+  if (command.startsWith('heading-')) heading(Number(command.slice(8)))
+  else if (command === 'indent') indentList()
+  else if (command === 'outdent') indentList(true)
+  else adapter?.convertParagraph(command as Parameters<EditorAdapter['convertParagraph']>[0])
 }
 function indentList(outdent = false) {
   adapter?.indentList(outdent)
 }
 function insertCodeBlock() {
   adapter?.insertCodeBlock()
+}
+const paragraphItems: CommandMenuItem[] = [
+  { id: 'paragraph', label: '正文' },
+  ...['一级', '二级', '三级', '四级', '五级', '六级'].map((label, index) => ({
+    id: 'heading-' + (index + 1),
+    label: label + '标题',
+    shortcut: 'Ctrl+' + (index + 1),
+    separator: index === 0
+  })),
+  { id: 'blockquote', label: '引用', separator: true },
+  { id: 'ul-bullet', label: '无序列表' },
+  { id: 'ol-order', label: '有序列表' },
+  { id: 'ul-task', label: '任务列表' },
+  { id: 'indent', label: '增加缩进', shortcut: 'Tab', separator: true },
+  { id: 'outdent', label: '减少缩进', shortcut: 'Shift+Tab' }
+]
+const formatItems: CommandMenuItem[] = [
+  { id: 'strong', label: '加粗', shortcut: 'Ctrl+B' },
+  { id: 'em', label: '斜体', shortcut: 'Ctrl+I' },
+  { id: 'del', label: '删除线', shortcut: 'Ctrl+Shift+X' },
+  { id: 'inline_code', label: '行内代码' }
+]
+const insertItems: CommandMenuItem[] = [
+  { id: 'table', label: '插入表格' },
+  { id: 'code-block', label: '代码块' },
+  { id: 'horizontal-rule', label: '分隔线' }
+]
+const viewItems = computed<CommandMenuItem[]>(() => [
+  { id: 'sidebar', label: '文件列表', checked: !sidebarHidden.value },
+  { id: 'outline', label: '文档大纲', checked: !outlineHidden.value },
+  { id: 'collaboration', label: '协作任务', checked: c.preferences.collaboration },
+  { id: 'theme', label: c.preferences.theme === 'light' ? '深色主题' : '浅色主题', separator: true }
+])
+function formatCommand(command: string) {
+  format(command as Parameters<typeof format>[0])
+}
+function insertCommand(command: string) {
+  if (command === 'table') insertTable()
+  else if (command === 'code-block') insertCodeBlock()
+  else adapter?.insertHorizontalRule()
+}
+function toggleSidebar() {
+  if (window.innerWidth <= 760) ui.mobilePanel = ui.mobilePanel === 'files' ? 'editor' : 'files'
+  else sidebarHidden.value = !sidebarHidden.value
+}
+function viewCommand(command: string) {
+  if (command === 'sidebar') toggleSidebar()
+  else if (command === 'outline') outlineHidden.value = !outlineHidden.value
+  else if (command === 'collaboration') toggleCollaboration()
+  else void run(() => c.setTheme(c.preferences.theme === 'light' ? 'dark' : 'light'))
+}
+function nativeCommandItems(items: CommandMenuItem[], action: (id: string) => void) {
+  return items.flatMap((item) => [
+    ...(item.separator ? [{ type: 'separator' as const }] : []),
+    {
+      id: item.id,
+      label: item.label,
+      shortcut: item.shortcut?.startsWith('Ctrl+') ? item.shortcut.toLowerCase() : undefined,
+      disabled: editingDisabled.value || item.disabled,
+      onSelect: () => action(item.id)
+    }
+  ])
+}
+function setNativeMenus() {
+  nativeWindow.setMenus([
+    {
+      id: 'file',
+      label: '文件',
+      items: [
+        { id: 'new', label: '新建', shortcut: 'ctrl+n', onSelect: newDoc },
+        { id: 'open', label: '导入文件', shortcut: 'ctrl+o', onSelect: open },
+        { id: 'open-in-place', label: '原位打开文件', onSelect: openInPlace },
+        { id: 'save', label: '保存', shortcut: 'ctrl+s', disabled: !active.value, onSelect: save },
+        {
+          id: 'save-as',
+          label: '另存为',
+          shortcut: 'ctrl+shift+s',
+          disabled: !active.value,
+          onSelect: saveAs
+        },
+        { id: 'export', label: '导出 Markdown', disabled: !active.value, onSelect: exportFile },
+        {
+          id: 'reopen-tab',
+          label: '恢复关闭标签',
+          shortcut: 'ctrl+shift+t',
+          disabled: !c.closedIds.length,
+          onSelect: reopenClosedTab
+        },
+        { type: 'separator' },
+        { id: 'exit', label: '退出', onSelect: () => void run(requestClose) }
+      ]
+    },
+    {
+      id: 'edit',
+      label: '编辑',
+      items: [
+        {
+          id: 'close-tab',
+          label: '关闭标签',
+          shortcut: 'ctrl+w',
+          disabled: !active.value,
+          onSelect: () => c.active && run(() => closeTab(c.activeId))
+        },
+        { id: 'undo', label: '撤销', disabled: editingDisabled.value, onSelect: undo },
+        { id: 'redo', label: '重做', disabled: editingDisabled.value, onSelect: redo },
+        { id: 'find', label: '查找与替换', shortcut: 'ctrl+f', onSelect: () => openSearch() },
+        { id: 'replace', label: '替换', shortcut: 'ctrl+h', onSelect: () => openSearch(true) }
+      ]
+    },
+    { id: 'paragraph', label: '段落', items: nativeCommandItems(paragraphItems, convertParagraph) },
+    { id: 'format', label: '格式', items: nativeCommandItems(formatItems, formatCommand) },
+    { id: 'insert', label: '插入', items: nativeCommandItems(insertItems, insertCommand) },
+    {
+      id: 'view',
+      label: '视图',
+      items: [
+        {
+          id: 'rich',
+          label: '富文本',
+          disabled: !active.value,
+          onSelect: () => switchMode('rich')
+        },
+        {
+          id: 'source',
+          label: '源码',
+          disabled: !active.value,
+          onSelect: () => switchMode('source')
+        },
+        {
+          id: 'preview',
+          label: '阅读预览',
+          disabled: !active.value,
+          onSelect: () => switchMode('preview')
+        },
+        { type: 'separator' },
+        ...viewItems.value.map((item) => ({
+          id: item.id,
+          label: item.label,
+          checked: item.checked,
+          onSelect: () => viewCommand(item.id)
+        }))
+      ]
+    }
+  ])
 }
 function tableCommand(command: Parameters<EditorAdapter['tableCommand']>[0]) {
   adapter?.tableCommand(command)
@@ -276,20 +506,24 @@ async function applyDiff() {
   diff.value = null
 }
 async function openManager() {
-  await nativeWindow.minimize()
+  c.preferences.collaboration = true
+  ui.mobilePanel = 'editor'
+  ui.touch()
+  await activity()
 }
 function dismissNotice() {
   c.notice = null
   ui.touch()
 }
 function toggleCollaboration() {
-  c.preferences.collaboration = !c.preferences.collaboration
-  ui.touch()
-  void activity()
+  if (c.preferences.collaboration) closeCollaboration()
+  else void openManager()
 }
 function closeCollaboration() {
   c.preferences.collaboration = false
+  ui.mobilePanel = 'editor'
   ui.touch()
+  void focusActiveEditor()
 }
 async function commitTitle() {
   titleEditing.value = false
@@ -351,6 +585,7 @@ function keyboard(event: KeyboardEvent) {
       else if (key === 'b' && !event.shiftKey) action = () => format('strong')
       else if (key === 'i' && !event.shiftKey) action = () => format('em')
       else if (key === 'x' && event.shiftKey) action = () => format('del')
+      else if (/^[1-6]$/.test(key) && !event.shiftKey) action = () => heading(Number(key))
     }
   } else if (key === 'f3') {
     action = () => (ui.find ? search(event.shiftKey ? 'previous' : 'next') : openSearch())
@@ -362,80 +597,16 @@ function keyboard(event: KeyboardEvent) {
 }
 onMounted(async () => {
   unsubscribe = c.onChange(() => ui.touch())
-  adapter = new EditorAdapter(
-    c,
-    rich.value!,
-    source.value!,
-    !!props.nativeSelection,
-    () => selectionTick.value++
-  )
+  // Register the native input before restoring sessions; late textarea creation replays its old buffer in acdert.
+  sourceEditor = createSourceEditor(source.value!, () => {
+    void save()
+  })
   document.addEventListener('keydown', keyboard, true)
   await c.ready
   ui.touch()
   await refreshRoots()
-  if (c.active) {
-    lastId = c.active.id
-    lastMode = c.active.mode
-    lastResource = JSON.stringify(c.active.resource)
-    adapter.load(c.active)
-  }
-  nativeWindow.setMenus([
-    {
-      id: 'file',
-      label: '文件',
-      items: [
-        { id: 'new', label: '新建', shortcut: 'ctrl+n', onSelect: newDoc },
-        { id: 'open', label: '导入文件', shortcut: 'ctrl+o', onSelect: open },
-        { id: 'open-in-place', label: '原位打开文件', onSelect: openInPlace },
-        { id: 'save', label: '保存', shortcut: 'ctrl+s', onSelect: save },
-        { id: 'save-as', label: '另存为', shortcut: 'ctrl+shift+s', onSelect: saveAs },
-        { id: 'export', label: '导出 Markdown', onSelect: exportFile },
-        {
-          id: 'reopen-tab',
-          label: '恢复关闭标签',
-          shortcut: 'ctrl+shift+t',
-          onSelect: reopenClosedTab
-        },
-        { type: 'separator' },
-        { id: 'exit', label: '退出', onSelect: () => void run(requestClose) }
-      ]
-    },
-    {
-      id: 'edit',
-      label: '编辑',
-      items: [
-        {
-          id: 'close-tab',
-          label: '关闭标签',
-          shortcut: 'ctrl+w',
-          onSelect: () => c.active && run(() => closeTab(c.activeId))
-        },
-        { id: 'undo', label: '撤销', onSelect: undo },
-        { id: 'redo', label: '重做', onSelect: redo },
-        {
-          id: 'find',
-          label: '查找与替换',
-          shortcut: 'ctrl+f',
-          onSelect: () => openSearch()
-        },
-        { id: 'replace', label: '替换', shortcut: 'ctrl+h', onSelect: () => openSearch(true) }
-      ]
-    },
-    {
-      id: 'view',
-      label: '视图',
-      items: [
-        { id: 'rich', label: '富文本', onSelect: () => switchMode('rich') },
-        { id: 'source', label: '源码', onSelect: () => switchMode('source') },
-        { id: 'preview', label: '阅读预览', onSelect: () => switchMode('preview') },
-        {
-          id: 'theme',
-          label: '切换亮暗主题',
-          onSelect: () => run(() => c.setTheme(c.preferences.theme === 'light' ? 'dark' : 'light'))
-        }
-      ]
-    }
-  ])
+  if (c.active) await ensureEditor()
+  setNativeMenus()
   nativeWindow.on('beforeclose', () => {
     void run(requestClose)
     return false
@@ -447,7 +618,7 @@ onMounted(async () => {
   }, 1500)
 })
 watch(
-  () => [ui.version, c.activeId, c.active?.mode],
+  () => [ui.version, c.activeId, c.active?.mode, sidebarHidden.value, outlineHidden.value],
   () => {
     document.documentElement.dataset.theme = c.preferences.theme
     const d = c.active
@@ -455,7 +626,12 @@ watch(
     const shouldFocus = focusKey !== lastFocusKey
     lastFocusKey = focusKey
     if (d?.id !== lastId || !titleEditing.value) titleDraft.value = d?.title ?? ''
-    if (!d || !adapter) return
+    if (!d) return
+    nativeWindow.setTitle((c.dirty(d) ? '• ' : '') + d.title + ' — MarkText')
+    if (!adapter) {
+      void ensureEditor()
+      return
+    }
     if (d.id !== lastId || d.mode !== lastMode || JSON.stringify(d.resource) !== lastResource) {
       adapter.load(d)
       lastId = d.id
@@ -463,10 +639,31 @@ watch(
       lastResource = JSON.stringify(d.resource)
     }
     if (shouldFocus) void focusActiveEditor()
-    nativeWindow.setTitle((c.dirty(d) ? '• ' : '') + d.title + ' — MarkText')
   }
 )
+watch(
+  [
+    () => active.value?.id ?? '',
+    editingDisabled,
+    () => {
+      ui.version
+      return c.closedIds.length
+    },
+    () => {
+      ui.version
+      return c.preferences.theme
+    },
+    () => {
+      ui.version
+      return c.preferences.collaboration
+    },
+    sidebarHidden,
+    outlineHidden
+  ],
+  setNativeMenus
+)
 onBeforeUnmount(() => {
+  disposed = true
   document.removeEventListener('keydown', keyboard, true)
   unsubscribe()
   if (activityTimer) clearInterval(activityTimer)
@@ -494,12 +691,18 @@ watch(
 </script>
 
 <template>
-  <div class="workspace" :data-version="ui.version" :data-mobile-panel="ui.mobilePanel">
+  <div
+    class="workspace"
+    :class="{ 'without-sidebar': sidebarHidden }"
+    :data-version="ui.version"
+    :data-mobile-panel="ui.mobilePanel"
+  >
     <header class="topbar">
       <button
-        class="mobile-menu"
+        class="navigation-toggle"
         aria-label="查看文件"
-        @click="ui.mobilePanel = ui.mobilePanel === 'files' ? 'editor' : 'files'"
+        :aria-expanded="!sidebarHidden || ui.mobilePanel === 'files'"
+        @click="toggleSidebar"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.5" />
@@ -525,24 +728,16 @@ watch(
       </div>
     </header>
     <aside class="sidebar" aria-label="文档导航">
-      <div class="section-label">
-        私有笔记 <span class="num">{{ rows.length }}</span>
-      </div>
-      <div class="notes" role="list">
-        <button
-          v-for="d in rows"
-          :key="d.id"
-          role="listitem"
-          class="note"
-          :class="{ selected: d.id === active?.id }"
-          @click="run(() => activate(d.id))"
-        >
-          <span class="file-symbol" aria-hidden="true">≡</span
-          ><span class="note-name">{{ d.title }}</span
-          ><span v-if="d.dirty" class="unsaved" aria-label="未保存">•</span>
-        </button>
-        <p v-if="!rows.length" class="quiet">还没有笔记</p>
-      </div>
+      <NoteNavigator
+        :notes="notes"
+        :active-id="active?.id || ''"
+        :disabled="closing"
+        @activate="(id) => run(() => activate(id))"
+        @create="newDoc"
+        @rename="(id, title) => run(() => c.rename(id, title))"
+        @duplicate="duplicateDoc"
+        @close="(id) => run(() => closeTab(id))"
+      />
       <div class="section-label folder-heading">
         文件夹 <button aria-label="添加文件夹" @click="run(chooseFolder)">＋</button>
       </div>
@@ -607,6 +802,7 @@ watch(
         </div>
         <button class="add-tab" aria-label="新建文档" @click="newDoc">＋</button>
         <button
+          ref="reopenButton"
           class="reopen-tab"
           aria-label="恢复关闭标签"
           title="恢复关闭标签 · Ctrl+Shift+T"
@@ -616,7 +812,13 @@ watch(
           ↶
         </button>
       </nav>
-      <div v-if="c.notice" class="notice" :class="c.notice.kind" role="status">
+      <div
+        v-if="c.notice"
+        class="notice"
+        :class="c.notice.kind"
+        role="status"
+        aria-label="文档操作反馈"
+      >
         <span>{{ c.notice.message }}</span
         ><button
           v-if="c.notice.kind === 'conflict' && active?.resource"
@@ -672,108 +874,69 @@ watch(
           >
           <button class="storage-action" :disabled="!active" @click="saveAs">另存为</button>
         </p>
-        <div class="format-toolbar" aria-label="编辑命令">
+        <div class="format-toolbar" role="toolbar" aria-label="编辑命令">
           <button
             aria-label="撤销"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
+            title="撤销 · Ctrl+Z"
+            :disabled="editingDisabled"
+            @mousedown.prevent
             @click="undo"
           >
-            撤销</button
-          ><button
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+            </svg>
+          </button>
+          <button
             aria-label="重做"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
+            title="重做 · Ctrl+Shift+Z"
+            :disabled="editingDisabled"
+            @mousedown.prevent
             @click="redo"
           >
-            重做
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                d="m13 5 4 4-4 4m4-4H8a4 4 0 0 0 0 8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+            </svg>
           </button>
           <span class="toolbar-separator"></span>
-          <select
-            aria-label="段落类型"
-            class="paragraph-menu"
-            value=""
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @change="convertParagraph"
+          <CommandMenu
+            label="段落类型"
+            :items="paragraphItems"
+            :disabled="editingDisabled"
+            @select="convertParagraph"
+            >段落</CommandMenu
           >
-            <option value="" disabled>段落</option>
-            <option value="paragraph">正文</option>
-            <option value="blockquote">引用</option>
-            <option value="ul-bullet">无序列表</option>
-            <option value="ol-order">有序列表</option>
-            <option value="ul-task">任务列表</option>
-          </select>
+          <CommandMenu
+            label="格式"
+            :items="formatItems"
+            :disabled="editingDisabled"
+            @select="formatCommand"
+          />
+          <CommandMenu
+            label="插入"
+            :items="insertItems"
+            :disabled="editingDisabled"
+            @select="insertCommand"
+          />
+          <CommandMenu label="视图" :items="viewItems" @select="viewCommand" />
+          <span class="toolbar-spacer"></span>
           <button
-            aria-label="加粗"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="format('strong')"
-          >
-            <strong>B</strong></button
-          ><button
-            aria-label="斜体"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="format('em')"
-          >
-            <em>I</em></button
-          ><button
-            aria-label="删除线"
-            title="删除线 · Ctrl+Shift+X"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="format('del')"
-          >
-            <s>删除线</s></button
-          ><button
-            aria-label="行内代码"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="format('inline_code')"
-          >
-            〈〉</button
-          ><button
-            aria-label="一级标题"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="heading(1)"
-          >
-            H1</button
-          ><button
-            aria-label="代码块"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="insertCodeBlock"
-          >
-            代码块</button
-          ><button
-            aria-label="增加缩进"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="indentList()"
-          >
-            缩进</button
-          ><button
-            aria-label="减少缩进"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click="indentList(true)"
-          >
-            减少缩进</button
-          ><button
-            aria-label="插入表格"
-            :disabled="active?.readOnly || active?.mode === 'preview'"
-            @mousedown.prevent
-            @click.stop="insertTable"
-          >
-            表格
-          </button>
-          <span class="toolbar-spacer"></span
-          ><button
             :aria-pressed="ui.searchOpen"
             title="查找与替换 · Ctrl+F"
             @click="ui.searchOpen ? closeSearch() : openSearch()"
           >
-            查找</button
-          ><button :aria-pressed="c.preferences.collaboration" @click="toggleCollaboration">
+            查找
+          </button>
+          <button :aria-pressed="c.preferences.collaboration" @click="toggleCollaboration">
             协作任务
           </button>
         </div>
@@ -896,12 +1059,12 @@ watch(
           </div>
           <p v-if="ui.searchError" class="search-error" role="alert">{{ ui.searchError }}</p>
         </form>
-        <div class="writing-area">
+        <div class="writing-area" :class="{ 'without-outline': outlineHidden }">
           <section class="editor-content" aria-label="文档编辑区域">
             <div ref="rich" class="rich-host"></div>
             <div ref="source" class="source-host" hidden></div>
           </section>
-          <aside class="outline" aria-label="文档大纲">
+          <aside v-show="!outlineHidden" class="outline" aria-label="文档大纲">
             <div class="section-label">大纲</div>
             <p v-if="!headings.length" class="quiet">文档标题会显示在这里</p>
             <button
@@ -936,29 +1099,15 @@ watch(
           打开示例文档
         </button>
       </section>
-      <aside v-if="c.preferences.collaboration" class="task-drawer" aria-label="协作任务">
-        <div class="drawer-heading">
-          <h2>协作任务</h2>
-          <button aria-label="关闭协作任务" @click="closeCollaboration">×</button>
-        </div>
-        <p v-if="!c.connected" class="quiet">先在协作中心完成配对。文件编辑和保存可以继续使用。</p>
-        <p v-else-if="taskError" role="status">{{ taskError }}</p>
-        <p v-else-if="!tasks.length" class="quiet">目前没有协作任务</p>
-        <div v-for="task in tasks" :key="task.taskId" class="task-row">
-          <div>
-            <strong>{{ task.capability }}</strong
-            ><span class="task-state">{{ task.state }}</span>
-          </div>
-          <p>{{ task.source.label }} · {{ task.stage }}</p>
-          <small class="num">{{ safeDate(task.updatedAt) }} · {{ task.taskId.slice(0, 8) }}</small>
-          <p v-if="task.error" class="error-text">
-            {{ task.error.code }} · {{ task.error.message }}
-          </p>
-          <button v-if="task.proposalId" @click="run(() => showDiff(task.proposalId))">
-            查看建议差异
-          </button>
-        </div>
-      </aside>
+      <CollaborationPanel
+        v-if="c.preferences.collaboration"
+        :connected="c.connected"
+        :error="taskError || c.workerError"
+        :tasks="tasks"
+        @close="closeCollaboration"
+        @refresh="activity"
+        @proposal="(id) => run(() => showDiff(id))"
+      />
     </main>
     <div v-if="diff" class="modal-backdrop">
       <section class="dialog diff-dialog" role="dialog" aria-modal="true" aria-label="建议差异">
