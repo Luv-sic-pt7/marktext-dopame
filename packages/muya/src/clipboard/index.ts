@@ -90,8 +90,15 @@ class Clipboard {
 
             this.copyHandler(event);
 
-            if (isCut)
+            // Internal replacement cuts share their outer edit; a user cut starts its own undo step.
+            if (isCut) {
+                this.muya.flush();
+                const history = this.muya.editor.history;
+                history.cutoff(this.selection.getSelection() ?? undefined);
                 this.cutHandler();
+                this.muya.flush();
+                history.cutoff();
+            }
         };
 
         const keydownHandler = (event: Event) => {
@@ -154,8 +161,15 @@ class Clipboard {
         };
 
         const pasteHandler = (event: Event) => {
-            if (ownsEvent() && isClipboardEvent(event))
-                this.pasteHandler(event);
+            if (ownsEvent() && isClipboardEvent(event) && this.muya.canMutate) {
+                this.muya.flush();
+                const history = this.muya.editor.history;
+                history.cutoff(this.selection.getSelection() ?? undefined);
+                void this.pasteHandler(event).finally(() => {
+                    this.muya.flush();
+                    history.cutoff();
+                });
+            }
         };
 
         const { eventCenter } = this.muya;

@@ -117,11 +117,6 @@ if (existsSync(join(portRoot, 'third-party-licenses')))
   await cp(join(portRoot, 'third-party-licenses'), join(output, 'third-party-licenses'), {
     recursive: true
   })
-const publicAcceptance = join(portRoot, 'docs/acceptance-public.md')
-if (existsSync(publicAcceptance)) {
-  await mkdir(join(output, 'evidence'), { recursive: true })
-  await cp(publicAcceptance, join(output, 'evidence/acceptance-public.md'))
-}
 for (const name of ['run.sh', 'install.sh', 'uninstall.sh'])
   await chmod(join(output, 'scripts', name), 0o755)
 const files: { path: string; sha256: string; bytes: number }[] = []

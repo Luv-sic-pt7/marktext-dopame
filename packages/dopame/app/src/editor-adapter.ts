@@ -123,17 +123,40 @@ export class EditorAdapter implements EditorBridge {
   private nativeKey = (event: KeyboardEvent) => {
     const pointerTarget = this.nativePointerTarget
     this.nativePointerTarget = null
+    const documentBoundary =
+      (event.ctrlKey || event.metaKey) && (event.key === 'Home' || event.key === 'End')
     if (
       this.currentMode !== 'rich' ||
       this.controller.composing ||
-      event.ctrlKey ||
+      event.isComposing ||
       event.altKey ||
-      event.metaKey ||
+      ((event.ctrlKey || event.metaKey) && !documentBoundary) ||
       (event.target instanceof Element && !!event.target.closest('input,textarea,select')) ||
       !['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'].includes(event.key)
     )
       return
     const selection = this.muya.editor.selection.getSelection()
+    if (documentBoundary) {
+      const page = this.muya.editor.scrollPage
+      let block =
+        event.key === 'Home' ? page?.firstContentInDescendant() : page?.lastContentInDescendant()
+      if (block?.blockName === 'language-input') block = block.parent?.lastContentInDescendant()
+      if (!block) return
+      const focus = delVisibleBoundary(
+        { block, path: [...block.path], offset: event.key === 'Home' ? 0 : block.text.length },
+        event.key === 'Home' ? 1 : -1
+      )
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      ;(block.domNode as HTMLElement).focus({ preventScroll: true })
+      setVisibleDelSelection(
+        this.muya,
+        event.shiftKey && selection ? selection.anchor : focus,
+        focus
+      )
+      this.richHost.scrollTop = event.key === 'Home' ? 0 : this.richHost.scrollHeight
+      return
+    }
     if (!event.shiftKey && (event.key === 'Home' || event.key === 'End')) {
       const target =
         event.target instanceof Element

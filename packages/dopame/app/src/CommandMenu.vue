@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { claimCommandMenu, releaseCommandMenu, type CommandMenuItem } from './command-menu'
 
 const props = defineProps<{
@@ -35,6 +35,13 @@ function positionMenu() {
 }
 
 function close(restoreFocus = false) {
+  if (opened.value) {
+    document.removeEventListener('mousedown', outside)
+    window.removeEventListener('keydown', menuKey, true)
+    window.removeEventListener('resize', positionMenu)
+    window.removeEventListener('scroll', positionMenu, true)
+    window.removeEventListener('blur', dismiss)
+  }
   opened.value = false
   activeIndex.value = -1
   releaseCommandMenu(dismiss)
@@ -51,6 +58,12 @@ async function open(fromKeyboard = false, last = false) {
   if (props.disabled) return
   claimCommandMenu(dismiss)
   opened.value = true
+  document.addEventListener('mousedown', outside)
+  // Menus handle Escape before the app's document-level shortcuts.
+  window.addEventListener('keydown', menuKey, true)
+  window.addEventListener('resize', positionMenu)
+  window.addEventListener('scroll', positionMenu, true)
+  window.addEventListener('blur', dismiss)
   await nextTick()
   positionMenu()
   if (fromKeyboard) {
@@ -91,8 +104,11 @@ function menuKey(event: KeyboardEvent) {
     close(true)
     return
   }
-  if (event.target === trigger.value) return
-  if (event.altKey || event.ctrlKey || event.metaKey) return
+  if (event.ctrlKey || event.metaKey) {
+    close()
+    return
+  }
+  if (event.target === trigger.value || event.altKey) return
   const indexes = enabledIndexes.value
   let next: number | undefined
   if (event.key === 'Home') next = indexes[0]
@@ -125,21 +141,7 @@ watch(
     if (disabled) close()
   }
 )
-onMounted(() => {
-  document.addEventListener('mousedown', outside)
-  document.addEventListener('keydown', menuKey, true)
-  window.addEventListener('resize', positionMenu)
-  window.addEventListener('scroll', positionMenu, true)
-  window.addEventListener('blur', dismiss)
-})
-onBeforeUnmount(() => {
-  releaseCommandMenu(dismiss)
-  document.removeEventListener('mousedown', outside)
-  document.removeEventListener('keydown', menuKey, true)
-  window.removeEventListener('resize', positionMenu)
-  window.removeEventListener('scroll', positionMenu, true)
-  window.removeEventListener('blur', dismiss)
-})
+onBeforeUnmount(() => close())
 </script>
 
 <template>

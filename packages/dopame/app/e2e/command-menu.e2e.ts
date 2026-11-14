@@ -48,6 +48,28 @@ test('command menus stay legible in both themes and keep keyboard focus and view
   await expect(menu).toHaveCount(0)
   await expect(app.getByRole('button', { name: '格式', exact: true })).toBeFocused()
 
+  await app.keyboard.press('ctrl+f')
+  const find = app.getByRole('textbox', { name: '查找文本', exact: true })
+  await expect(find).toBeFocused()
+  await trigger.click()
+  await app.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+  await expect(find).toBeVisible()
+  await expect(trigger).toBeFocused()
+  await app.keyboard.press('Escape')
+  await expect(find).toHaveCount(0)
+  await expect
+    .poll(() =>
+      app.evaluate('document.querySelector(".mu-editor").contains(document.activeElement)')
+    )
+    .toBe(true)
+  await trigger.press('ArrowDown')
+  await app.keyboard.press('ctrl+f')
+  await expect(menu).toHaveCount(0)
+  await expect(find).toBeFocused()
+  await app.keyboard.press('Escape')
+  await expect(find).toHaveCount(0)
+
   for (const theme of ['light', 'dark']) {
     await app.resize(1440, 900)
     if (theme === 'dark') await app.getByRole('button', { name: '深色主题', exact: true }).click()

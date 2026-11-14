@@ -124,10 +124,11 @@ export class FilePort {
           r.onerror = () => reject(r.error)
         })
         db.close()
-        if (handle) this.handles.set(resource.key, handle)
+        if (handle?.kind === 'file' && typeof handle.getFile === 'function')
+          this.handles.set(resource.key, handle)
       } catch {}
     }
-    if (!handle)
+    if (!handle || handle.kind !== 'file' || typeof handle.getFile !== 'function')
       throw new AgentError('RESELECT_FILE', '外部文件需要重新选择，已恢复的草稿可先另存为')
     return handle
   }
@@ -153,13 +154,32 @@ export class FilePort {
       return ioError(e)
     }
   }
-  async readHandle(handle: FileSystemFileHandle, readOnly = false): Promise<ReadDocument> {
+  async readHandle(
+    handle: FileSystemFileHandle,
+    readOnly = false,
+    existing: Resource[] = []
+  ): Promise<ReadDocument> {
     try {
       const file = await handle.getFile()
       this.checkSize(file.size)
       const data = new Uint8Array(await file.arrayBuffer())
       const parsed = decodeFile(data)
-      const key = crypto.randomUUID()
+      let key = ''
+      for (const resource of existing) {
+        if (resource.kind !== 'handle') continue
+        let previous: FileSystemFileHandle
+        try {
+          previous = await this.handle(resource)
+        } catch (error) {
+          if (error instanceof AgentError && error.code === 'RESELECT_FILE') continue
+          throw error
+        }
+        if (await handle.isSameEntry(previous)) {
+          key = resource.key
+          break
+        }
+      }
+      if (!key) key = crypto.randomUUID()
       await this.remember(key, handle)
       return {
         title: file.name,
@@ -172,7 +192,7 @@ export class FilePort {
       return ioError(e)
     }
   }
-  async openFiles() {
+  async openFiles(onError?: (error: unknown, name: string) => void, existing: Resource[] = []) {
     try {
       const handles = await window.showOpenFilePicker({
         multiple: true,
@@ -184,7 +204,14 @@ export class FilePort {
         ]
       })
       const docs = []
-      for (const h of handles) docs.push(await this.readHandle(h))
+      for (const h of handles) {
+        try {
+          docs.push(await this.readHandle(h, false, existing))
+        } catch (error) {
+          if (!onError) throw error
+          onError(error, h.name)
+        }
+      }
       return docs
     } catch (e) {
       return ioError(e)

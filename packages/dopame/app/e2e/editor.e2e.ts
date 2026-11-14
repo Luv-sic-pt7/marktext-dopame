@@ -9,6 +9,192 @@ const evidence =
 mkdirSync(evidence, { recursive: true })
 const content = '# 中文测试 😀\n\n第一段内容。\n\n| 项目 | 数值 |\n| --- | --- |\n| 训练 | 12 |\n'
 
+test('P0 native clipboard copy cut paste and undo preserve Unicode in both editing modes', async ({
+  acde
+}) => {
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  const text = '剪贴板 中文 😀'
+  for (const mode of ['源码', '富文本']) {
+    await app.getByRole('button', { name: '新建', exact: true }).click()
+    await app.getByRole('button', { name: mode, exact: true }).click()
+    if (mode === '源码')
+      await app.getByRole('textbox', { name: 'Markdown 源码', exact: true }).type(text)
+    else {
+      await app.locator('.mu-editor [contenteditable="true"]').first().click()
+      await app.keyboard.insertText(text)
+    }
+    await app.keyboard.press('ctrl+a')
+    await app.keyboard.press('ctrl+c')
+    expect((await acde.clipboard()).trimEnd()).toBe(text)
+    await app.keyboard.press('ctrl+x')
+    if (mode === '源码')
+      expect(
+        await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+      ).toBe('')
+    else await expect(app.locator('.mu-editor')).toHaveText('')
+    await app.getByRole('button', { name: '撤销', exact: true }).click()
+    if (mode === '源码')
+      expect(
+        await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+      ).toBe(text)
+    else await expect(app.locator('.mu-editor')).toHaveText(text)
+    await app.keyboard.press('ctrl+end')
+    if (mode === '富文本') expect(await app.evaluate('getSelection().isCollapsed')).toBe(true)
+    await acde.setClipboard(' 粘贴尾巴😀')
+    await app.keyboard.press('ctrl+v')
+    if (mode === '源码')
+      expect(
+        await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+      ).toBe(text + ' 粘贴尾巴😀')
+    else await expect(app.locator('.mu-editor')).toHaveText(text + ' 粘贴尾巴😀')
+    await app.getByRole('button', { name: '撤销', exact: true }).click()
+    if (mode === '富文本') await expect(app.locator('.mu-editor')).toHaveText(text)
+    await app.keyboard.press('ctrl+end')
+    await app.keyboard.insertText(' 继续输入')
+    await acde.setClipboard(' 快速粘贴')
+    await app.keyboard.press('ctrl+v')
+    await app.getByRole('button', { name: '撤销', exact: true }).click()
+    if (mode === '富文本') await expect(app.locator('.mu-editor')).toHaveText(text + ' 继续输入')
+    await app.getByRole('button', { name: '源码', exact: true }).click()
+    expect(
+      (
+        await app.evaluate<string>('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+      ).trimEnd()
+    ).toBe(text + ' 继续输入')
+  }
+  expect((await app.console({ level: 'errors' })).entries).toEqual([])
+})
+
+test('P0 escapes entities and both CommonMark hard break forms render and round trip unchanged', async ({
+  acde,
+  home
+}) => {
+  const file = join(home, '语法保真.md')
+  const original =
+    '# 语法保真\n\n\\*字面星号\\* 与 &amp; 和 &#x1F600;。\n\n软换行一\n软换行二\n\n空格硬换行一  \n空格硬换行二\n\n反斜杠硬换行一\\\n反斜杠硬换行二\n'
+  await Bun.write(file, original)
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  await acde.chooseFiles(file)
+  await app.getByRole('button', { name: '原位打开文件', exact: true }).click()
+  await expect(app.locator('.mu-editor .mu-hard-line-break')).toHaveCount(2)
+  await expect(app.locator('.mu-editor .mu-soft-line-break')).toHaveCount(1)
+  expect(
+    await app.evaluate(
+      'Array.from(document.querySelectorAll(".mu-html-escape")).map(e=>e.getAttribute("data-character"))'
+    )
+  ).toEqual(['&', '😀'])
+  await app.screenshot({ path: join(evidence, 'native-p0-escapes-rich.png') })
+  let previewCaptured = false
+  for (const mode of ['预览', '源码', '富文本', '预览', '源码']) {
+    await app.getByRole('button', { name: mode, exact: true }).click()
+    if (mode === '源码')
+      expect(
+        await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')
+      ).toBe(original)
+    else await expect(app.locator('.mu-editor .mu-hard-line-break')).toHaveCount(2)
+    if (mode === '预览' && !previewCaptured) {
+      await app.screenshot({ path: join(evidence, 'native-p0-escapes-preview.png') })
+      previewCaptured = true
+    }
+  }
+  await app.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(app.locator('.statusbar')).toContainText('已保存')
+  expect(readFileSync(file, 'utf8')).toBe(original)
+  await app.screenshot({ path: join(evidence, 'native-p0-escapes-breaks.png') })
+  expect((await app.console({ level: 'errors' })).entries).toEqual([])
+})
+
+test('P0 ordered starts and loose nested list paragraphs retain their structure and original source', async ({
+  acde,
+  home
+}) => {
+  const file = join(home, '复杂列表.md')
+  const original =
+    '3. 第三项\n4. 第四项\n\n   第二段仍属于第四项。\n\n   - 内层一\n   - 内层二\n\n5. 第五项\n'
+  await Bun.write(file, original)
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  await acde.chooseFiles(file)
+  await app.getByRole('button', { name: '原位打开文件', exact: true }).click()
+  const list = app.locator('.mu-editor ol').first()
+  await expect(list).toHaveAttribute('start', '3')
+  await expect(list.locator(':scope > li')).toHaveCount(3)
+  await expect(list.locator('ul li')).toHaveCount(2)
+  await expect(list.locator(':scope > li').nth(1)).toContainText('第二段仍属于第四项。')
+  await app.getByRole('button', { name: '预览', exact: true }).click()
+  await expect(list).toHaveAttribute('start', '3')
+  await app.getByRole('button', { name: '源码', exact: true }).click()
+  expect(await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')).toBe(
+    original
+  )
+  await app.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(app.locator('.statusbar')).toContainText('已保存')
+  expect(readFileSync(file, 'utf8')).toBe(original)
+})
+
+test('P0 document boundary shortcuts collapse or extend a rich selection across blocks', async ({
+  acde,
+  home
+}) => {
+  const file = join(home, '边界导航.md')
+  const original = '# 首段\n\n中段 😀\n\n末段 ~~划线~~ 文本\n'
+  await Bun.write(file, original)
+  await acde.open('marktext-dopame')
+  const app = acde.window('marktext-dopame')
+  await acde.chooseFiles(file)
+  await app.getByRole('button', { name: '原位打开文件', exact: true }).click()
+  await app
+    .locator('.mu-editor .mu-content[contenteditable="true"]')
+    .filter({ hasText: '中段' })
+    .click()
+  await app.keyboard.press('ctrl+end')
+  expect(await app.evaluate('getSelection().isCollapsed')).toBe(true)
+  expect(
+    await app.evaluate('getSelection().focusNode.parentElement.closest(".mu-content").textContent')
+  ).toContain('末段')
+  await app.keyboard.press('ctrl+shift+home')
+  const selected = await app.evaluate<string>('getSelection().toString()')
+  expect(selected).toContain('首段')
+  expect(selected).toContain('中段 😀')
+  expect(selected).toContain('末段')
+  await app.keyboard.press('ctrl+home')
+  expect(await app.evaluate('getSelection().isCollapsed')).toBe(true)
+  expect(
+    await app.evaluate('getSelection().anchorNode.parentElement.closest(".mu-content").textContent')
+  ).toContain('首段')
+  await app.keyboard.press('ctrl+shift+end')
+  expect(await app.evaluate('getSelection().toString()')).toContain('末段')
+  await app.getByRole('button', { name: '源码', exact: true }).click()
+  expect(await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')).toBe(
+    original
+  )
+  expect(readFileSync(file, 'utf8')).toBe(original)
+  for (const code of ['```js\nconst boundary = 1\n```\n', '    const boundary = 1\n']) {
+    const input = app.getByRole('textbox', { name: 'Markdown 源码', exact: true })
+    await input.press('ctrl+a')
+    await input.type(code)
+    await app.getByRole('button', { name: '富文本', exact: true }).click()
+    await app
+      .locator('.mu-editor .mu-content[contenteditable="true"]')
+      .filter({ hasText: 'const boundary' })
+      .click()
+    await app.keyboard.press('ctrl+home')
+    expect(await app.evaluate('document.activeElement.matches("input,textarea")')).toBe(false)
+    expect(await app.evaluate('getSelection().anchorOffset')).toBe(0)
+    expect(
+      await app.evaluate(
+        'getSelection().anchorNode.parentElement.closest(".mu-content").textContent'
+      )
+    ).toContain('const boundary')
+    await app.getByRole('button', { name: '源码', exact: true }).click()
+    expect(await app.evaluate('document.querySelector(".CodeMirror").CodeMirror.getValue()')).toBe(
+      code
+    )
+  }
+})
+
 test('imported files save to private working copies and export to an explicit destination', async ({
   acde,
   home

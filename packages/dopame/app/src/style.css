@@ -178,37 +178,6 @@ input {
   font-weight: 500;
   padding: 0 8px 8px;
 }
-.notes {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.note {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  min-height: 34px;
-  padding: 6px 9px;
-}
-.note.selected {
-  background: var(--active);
-}
-.note-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.file-symbol {
-  color: var(--muted);
-  font-size: 19px;
-  line-height: 1;
-}
-.unsaved {
-  color: var(--accent);
-}
 .quiet {
   color: var(--muted);
   font-size: 12px;

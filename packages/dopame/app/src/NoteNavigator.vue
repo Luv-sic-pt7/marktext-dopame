@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import CommandMenu from './CommandMenu.vue'
 
 interface Note {
   id: string
@@ -23,10 +24,8 @@ const collapsed = ref(false)
 const filtering = ref(false)
 const query = ref('')
 const scope = ref<'all' | 'open'>('all')
-const menuId = ref('')
 const renameId = ref('')
 const renameDraft = ref('')
-let menuTrigger: HTMLButtonElement | null = null
 
 const duplicateTitles = computed(() => {
   const counts = new Map<string, number>()
@@ -42,21 +41,7 @@ const visibleNotes = computed(() => {
   )
 })
 
-function closeMenu(restoreFocus = false) {
-  menuId.value = ''
-  if (restoreFocus) menuTrigger?.focus()
-}
-
-async function toggleMenu(id: string, event: MouseEvent) {
-  if (menuId.value === id) return closeMenu()
-  menuId.value = id
-  menuTrigger = event.currentTarget as HTMLButtonElement
-  await nextTick()
-  root.value?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-}
-
 async function toggleFilter() {
-  closeMenu()
   filtering.value = !filtering.value
   if (!filtering.value) {
     query.value = ''
@@ -69,11 +54,9 @@ async function toggleFilter() {
 
 function setScope(value: 'all' | 'open') {
   scope.value = value
-  closeMenu()
 }
 function toggleCollapsed() {
   collapsed.value = !collapsed.value
-  closeMenu()
 }
 function closeFilter() {
   query.value = ''
@@ -82,7 +65,6 @@ function closeFilter() {
 }
 
 async function startRename(note: Note) {
-  closeMenu()
   renameId.value = note.id
   renameDraft.value = note.title
   await nextTick()
@@ -106,45 +88,17 @@ async function finishRename(save: boolean, restoreFocus = false) {
   }
 }
 
-function activate(id: string) {
-  closeMenu()
-  emit('activate', id)
-}
+const noteItems = [
+  { id: 'rename', label: '重命名' },
+  { id: 'duplicate', label: '创建副本' }
+]
+const openNoteItems = [...noteItems, { id: 'close', label: '关闭标签' }]
 
-function menuAction(action: 'duplicate' | 'close', id: string) {
-  closeMenu()
-  if (action === 'duplicate') emit('duplicate', id)
-  else emit('close', id)
+function menuAction(action: string, note: Note) {
+  if (action === 'rename') void startRename(note)
+  else if (action === 'duplicate') emit('duplicate', note.id)
+  else if (action === 'close') emit('close', note.id)
 }
-
-function menuKey(event: KeyboardEvent) {
-  const items = [...(root.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])]
-  const index = items.indexOf(document.activeElement as HTMLButtonElement)
-  let next = index
-  if (event.key === 'ArrowDown') next = (index + 1) % items.length
-  else if (event.key === 'ArrowUp') next = (index - 1 + items.length) % items.length
-  else if (event.key === 'Home') next = 0
-  else if (event.key === 'End') next = items.length - 1
-  else if (event.key === 'Escape') {
-    event.preventDefault()
-    event.stopPropagation()
-    closeMenu(true)
-    return
-  } else if (event.key === 'Tab') {
-    closeMenu(true)
-    return
-  } else return
-  event.preventDefault()
-  event.stopPropagation()
-  items[next]?.focus()
-}
-
-function outside(event: MouseEvent) {
-  if (!root.value?.contains(event.target as Node)) closeMenu()
-}
-
-onMounted(() => document.addEventListener('mousedown', outside))
-onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
 </script>
 
 <template>
@@ -216,7 +170,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
           role="listitem"
           :aria-label="note.title"
           :data-note-id="note.id"
-          @click="activate(note.id)"
+          @click="emit('activate', note.id)"
         >
           <input
             v-if="renameId === note.id"
@@ -235,7 +189,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
             :aria-label="note.title"
             :aria-current="note.id === activeId ? 'true' : undefined"
             :title="`${note.title} · ${note.detail}`"
-            @click.stop="activate(note.id)"
+            @click.stop="emit('activate', note.id)"
           >
             <span
               class="note-status"
@@ -251,36 +205,22 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
               }}</small>
             </span>
           </button>
-          <button
+          <CommandMenu
             v-if="renameId !== note.id"
             class="note-more"
-            :class="{ expanded: menuId === note.id }"
-            :aria-label="'笔记操作 ' + note.title"
-            :aria-expanded="menuId === note.id"
-            aria-haspopup="menu"
+            :label="'笔记操作 ' + note.title"
+            :items="note.open ? openNoteItems : noteItems"
             :disabled="disabled"
-            @click.stop="toggleMenu(note.id, $event)"
+            icon
+            @click.stop
+            @select="(action) => menuAction(action, note)"
           >
             <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden="true">
               <circle cx="4" cy="10" r="1.3" fill="currentColor" />
               <circle cx="10" cy="10" r="1.3" fill="currentColor" />
               <circle cx="16" cy="10" r="1.3" fill="currentColor" />
             </svg>
-          </button>
-          <div
-            v-if="menuId === note.id"
-            class="note-context-menu"
-            role="menu"
-            :aria-label="'笔记操作菜单 ' + note.title"
-            @click.stop
-            @keydown="menuKey"
-          >
-            <button role="menuitem" @click="startRename(note)">重命名</button>
-            <button role="menuitem" @click="menuAction('duplicate', note.id)">创建副本</button>
-            <button v-if="note.open" role="menuitem" @click="menuAction('close', note.id)">
-              关闭标签
-            </button>
-          </div>
+          </CommandMenu>
         </div>
       </div>
       <p v-if="!visibleNotes.length" class="note-empty">
@@ -422,42 +362,21 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
   line-height: 1.4;
 }
 .note-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  margin-right: 3px;
+}
+.note-more :deep(.command-trigger) {
   width: 24px;
   min-height: 24px;
   padding: 3px;
-  margin-right: 3px;
   color: var(--muted);
   opacity: 0;
   border-radius: 4px;
 }
-.note-entry:hover .note-more,
-.note-entry:focus-within .note-more,
-.note-more.expanded {
+.note-entry:hover .note-more :deep(.command-trigger),
+.note-entry:focus-within .note-more :deep(.command-trigger),
+.note-more :deep(.command-trigger[aria-expanded='true']) {
   opacity: 1;
-}
-.note-context-menu {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% - 2px);
-  right: 3px;
-  width: 144px;
-  padding: 4px;
-  border: 1px solid var(--control);
-  border-radius: 5px;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
-}
-.note-context-menu button {
-  width: 100%;
-  min-height: 30px;
-  border-radius: 3px;
-  padding: 4px 8px;
-  text-align: left;
 }
 .note-rename {
   width: 100%;
@@ -473,7 +392,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
   font-size: 12px;
 }
 @media (hover: none) {
-  .note-more {
+  .note-more :deep(.command-trigger) {
     opacity: 1;
   }
 }
@@ -487,7 +406,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
   .note-filter-input {
     font-size: 14px;
   }
-  .note-more {
+  .note-more :deep(.command-trigger) {
     min-height: 36px;
     width: 32px;
     opacity: 1;

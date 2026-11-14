@@ -22,7 +22,7 @@ async function noteMenu(app: AppWindow, title: string) {
   const row = notes.getByRole('listitem', { name: title, exact: true }).first()
   await row.hover()
   await row.getByRole('button', { name: '笔记操作 ' + title, exact: true }).click()
-  return notes.getByRole('menu', { name: '笔记操作菜单 ' + title, exact: true })
+  return app.getByRole('menu', { name: '笔记操作 ' + title, exact: true })
 }
 
 test('compact note navigation filters, folds and separates closed drafts from open tabs', async ({
@@ -51,11 +51,9 @@ test('compact note navigation filters, folds and separates closed drafts from op
   await expect(notes).toContainText('没有匹配的笔记')
   await filter.fill('导航')
 
-  await (
-    await noteMenu(app, '导航 Alpha')
-  )
-    .getByRole('menuitem', { name: '关闭标签', exact: true })
-    .click()
+  const alphaMenu = await noteMenu(app, '导航 Alpha')
+  await expect(app.getByRole('textbox', { name: '笔记标题', exact: true })).toHaveValue('导航 Beta')
+  await alphaMenu.getByRole('menuitem', { name: '关闭标签', exact: true }).click()
   await notes.getByRole('button', { name: '已打开', exact: true }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(1)
   await expect(notes.getByRole('listitem', { name: '导航 Beta', exact: true })).toBeVisible()
@@ -89,7 +87,7 @@ test('note actions rename and duplicate content while menu keyboard dismissal re
 
   await noteMenu(app, '待改标题')
   await app.keyboard.press('Escape')
-  await expect(notes.getByRole('menu')).toHaveCount(0)
+  await expect(app.getByRole('menu', { name: '笔记操作 待改标题', exact: true })).toHaveCount(0)
   await expect(notes.getByRole('button', { name: '笔记操作 待改标题', exact: true })).toBeFocused()
   await (
     await noteMenu(app, '待改标题')

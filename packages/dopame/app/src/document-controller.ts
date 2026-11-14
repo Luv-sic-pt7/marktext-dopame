@@ -4,6 +4,7 @@ import {
   FilePort,
   decodeFile,
   bytesForSave,
+  fromBase64,
   toBase64,
   type Format,
   type Resource,
@@ -120,9 +121,7 @@ export class DocumentController {
   dirty(d: Session) {
     return (
       d.revision !== d.savedRevision &&
-      (!d.stamp ||
-        decodeFile(new Uint8Array(Uint8Array.from(atob(d.stamp.base64), (c) => c.charCodeAt(0))))
-          .text !== d.text)
+      (!d.stamp || decodeFile(fromBase64(d.stamp.base64)).text !== d.text)
     )
   }
   message(kind: string, message: string) {
@@ -265,11 +264,19 @@ export class DocumentController {
     return d
   }
   async import(read: ReadDocument, inPlace = false) {
+    const target = read.resource
     const same =
       inPlace &&
-      [...this.docs.values()].find(
-        (d) => JSON.stringify(d.resource) === JSON.stringify(read.resource)
-      )
+      [...this.docs.values()].find((d) => {
+        const resource = d.resource
+        if (!resource || resource.kind !== target.kind) return false
+        return resource.kind === 'handle' && target.kind === 'handle'
+          ? resource.key === target.key
+          : resource.kind === 'root' &&
+              target.kind === 'root' &&
+              resource.root === target.root &&
+              resource.path === target.path
+      })
     if (same) {
       await this.activate(same.id)
       return same
@@ -291,8 +298,27 @@ export class DocumentController {
     return d
   }
   async openFiles(inPlace = false) {
-    const docs = await this.files.openFiles()
-    for (const d of docs) await this.import(d, inPlace)
+    await this.ready
+    const failures: string[] = []
+    const report = (error: unknown, name: string) =>
+      failures.push(name + ' · ' + (error instanceof Error ? error.message : String(error)))
+    const resources = inPlace
+      ? [...this.docs.values()].flatMap((d) => (d.resource ? [d.resource] : []))
+      : []
+    const docs = await this.files.openFiles(report, resources)
+    for (const d of docs) {
+      try {
+        await this.import(d, inPlace)
+      } catch (error) {
+        report(error, d.title)
+      }
+    }
+    if (failures.length) this.message('error', '以下文件未能打开：' + failures.join('；'))
+  }
+  async openHandle(handle: FileSystemFileHandle) {
+    await this.ready
+    const resources = [...this.docs.values()].flatMap((d) => (d.resource ? [d.resource] : []))
+    await this.import(await this.files.readHandle(handle, false, resources), true)
   }
   async closeTab(docId: string) {
     if (!this.openIds.includes(docId)) return

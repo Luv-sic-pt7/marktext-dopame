@@ -551,3 +551,13 @@ const escapeCharactersMap: Record<string, string> = escapeCharacters.reduce(
 );
 
 export default escapeCharactersMap;
+
+export function decodeCharacterReference(reference: string): string {
+    const numeric = /^&#(?:(\d{1,7})|x([\da-f]{1,6}));$/i.exec(reference);
+    if (!numeric)
+        return escapeCharactersMap[reference] ?? reference;
+    const point = numeric[1] ? Number.parseInt(numeric[1], 10) : Number.parseInt(numeric[2], 16);
+    return String.fromCodePoint(
+        point === 0 || point > 0x10FFFF || (point >= 0xD800 && point <= 0xDFFF) ? 0xFFFD : point,
+    );
+}

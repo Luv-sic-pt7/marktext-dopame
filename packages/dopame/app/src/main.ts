@@ -15,7 +15,7 @@ nativeWindow.on('request', async (request: any) => {
     if (request.kind === 'agent-wake' && typeof request.workerToken === 'string')
       await controller.connectWorker(request.workerToken)
     if (request.kind === 'open-file' && request.handle?.kind === 'file')
-      await controller.import(await controller.files.readHandle(request.handle))
+      await controller.openHandle(request.handle)
   } catch (error) {
     controller.error(error)
   }

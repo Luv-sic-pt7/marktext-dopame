@@ -45,9 +45,9 @@ export const commonMarkRules = {
     html_tag:
     // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation
     /^(<!--[\s\S]*?-->|(<([a-z][a-z\d-]*)[^\n<>]*>)(?:([\s\S]*?)(<\/\3 *>))?)/i, // raw html
-    html_escape: new RegExp(`^(${escapeCharacters.join('|')})`, 'i'),
+    html_escape: new RegExp(`^(&#(?:[0-9]{1,7}|[xX][0-9a-fA-F]{1,6});|${escapeCharacters.join('|')})`, 'i'),
     soft_line_break: /^(\n)(?!\n)/,
-    hard_line_break: /^( {2,})(\n)(?!\n)/,
+    hard_line_break: /^( {2,}|\\)(\n)(?!\n)/,
 
     // patched math marker `$`
     backlash: /^(\\)([\\`*{}[\]()#+\-.!_>~:|<$])/,

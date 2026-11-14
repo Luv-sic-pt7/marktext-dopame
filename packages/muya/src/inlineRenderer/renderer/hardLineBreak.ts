@@ -15,18 +15,21 @@ export default function hardLineBreak(
     );
     const className = CLASS_NAMES.MU_HARD_LINE_BREAK;
     const spaceClass = CLASS_NAMES.MU_HARD_LINE_BREAK_SPACE;
+    const marker = spaces === '\\'
+        ? h(`span.${CLASS_NAMES.MU_HIDE}.${CLASS_NAMES.MU_REMOVE}`, spaces)
+        : spaces;
 
     if (isAtEnd) {
         return [
-            h(`span.${className}`, h(`span.${spaceClass}`, spaces)),
+            h(`span.${className}`, h(`span.${spaceClass}`, marker)),
             h(`span.${CLASS_NAMES.MU_LINE_END}`, bands.length ? [...bands, lineBreak] : lineBreak),
         ];
     }
     else {
         return [
             h(`span.${className}`, bands.length
-                ? [...bands, h(`span.${spaceClass}`, spaces), lineBreak]
-                : [h(`span.${spaceClass}`, spaces), lineBreak]),
+                ? [...bands, h(`span.${spaceClass}`, marker), lineBreak]
+                : [h(`span.${spaceClass}`, marker), lineBreak]),
         ];
     }
 }

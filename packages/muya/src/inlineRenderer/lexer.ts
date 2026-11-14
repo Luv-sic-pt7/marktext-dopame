@@ -7,7 +7,7 @@ import type {
     Labels,
     Token,
 } from './types';
-import escapeCharactersMap from '../config/escapeCharacter';
+import { decodeCharacterReference } from '../config/escapeCharacter';
 import { escapeHTML, isLengthEven, union } from '../utils';
 import { validEmoji } from '../utils/emoji';
 import { scanEmphasisSpans } from './emphasis';
@@ -996,7 +996,7 @@ export function tokensToPlainText(tokens: Token[]): string {
                 break;
 
             case 'html_escape':
-                result += escapeCharactersMap[token.escapeCharacter] ?? token.raw;
+                result += decodeCharacterReference(token.escapeCharacter);
                 break;
 
             case 'auto_link':
@@ -1102,7 +1102,7 @@ export function tokensToInlineHtml(tokens: Token[]): string {
                 break;
 
             case 'html_escape':
-                result += escapeHTML(escapeCharactersMap[token.escapeCharacter] ?? token.raw);
+                result += escapeHTML(decodeCharacterReference(token.escapeCharacter));
                 break;
 
             case 'auto_link':
